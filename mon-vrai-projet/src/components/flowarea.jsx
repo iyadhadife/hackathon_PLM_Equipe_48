@@ -18,20 +18,19 @@ const FlowArea = () => {
     [setEdges],
   );
 
-  return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <ReactFlow
+  // Dans src/components/FlowArea.jsx
+    return (
+    // J'ajoute background: 'red' pour voir si le carré apparait
+    <div style={{ width: '100%', height: '500px', backgroundColor: 'red' }}>
+        <ReactFlow
         nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-      >
+        // ... le reste
+        >
         <Controls />
-        <Background variant="dots" gap={12} size={1} />
-      </ReactFlow>
+        <Background />
+        </ReactFlow>
     </div>
-  );
+    );
 };
 
 export default FlowArea;
