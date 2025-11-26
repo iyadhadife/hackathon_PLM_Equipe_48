@@ -1,6 +1,377 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X } from 'lucide-react';
-import './App.css'; // Important : Import du fichier CSS
+
+// --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
+import { fetchFilesFromApi, uploadFileToApi, getFileUrl } from './services/api.js';
+
+// Styles CSS intégrés pour garantir le fonctionnement en un seul fichier
+const cssStyles = `
+/* --- RESET & GLOBAL --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+  width: 280px;
+  background-color: #ffffff;
+  border-right: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, padding 0.3s ease;
+  flex-shrink: 0;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); /* Ajout d'une légère ombre */
+}
+
+.sidebar.closed {
+  width: 0;
+  overflow: hidden;
+  border-right: none;
+  box-shadow: none;
+}
+
+.sidebar-header {
+  height: 64px;
+  padding: 0 16px;
+  border-bottom: 1px solid #f1f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #fafbcb;
+}
+
+.sidebar-title {
+  font-weight: 700;
+  color: #4c6ef5; /* Indigo */
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.file-count {
+  background-color: #edf2ff;
+  color: #4c6ef5;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.file-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.empty-state-text {
+  text-align: center;
+  margin-top: 40px;
+  color: #adb5bd;
+  font-size: 0.9rem;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s; /* Transition sur tous les éléments */
+  border: 1px solid transparent;
+}
+
+.file-item:hover {
+  background-color: #f1f3f5; /* Légère couleur au survol */
+  border-color: #e9ecef;
+}
+
+.file-item.selected {
+  background-color: #edf2ff;
+  border-color: #bac8ff;
+  color: #364fc7;
+}
+
+.file-icon-wrapper {
+  margin-right: 12px;
+  color: #868e96;
+  display: flex;
+  align-items: center;
+  /* Correction: Assurer la taille et la couleur de l'icone */
+  padding: 8px;
+  border-radius: 6px;
+  background-color: #f1f3f5;
+}
+
+.file-item.selected .file-icon-wrapper {
+  color: #4c6ef5;
+  background-color: #ffffff;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0; /* Important pour le text-overflow */
+}
+
+.file-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: 0.75rem;
+  color: #adb5bd;
+}
+
+/* --- MAIN CONTENT --- */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  min-width: 0;
+}
+
+/* HEADER */
+.top-header {
+  height: 64px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Légère ombre */
+  z-index: 10;
+}
+
+.header-left, .header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+  background-color: #f1f3f5;
+}
+
+.page-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.status-badge.loading { background-color: #e7f5ff; color: #1c7ed6; }
+.status-badge.success { background-color: #e6fcf5; color: #0ca678; }
+.status-badge.error { background-color: #fff5f5; color: #fa5252; }
+
+.hidden-input {
+  display: none;
+}
+
+.primary-btn {
+  background-color: #4c6ef5;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(76, 110, 245, 0.3); /* Ajout d'une ombre bleue */
+}
+
+.primary-btn:hover {
+  background-color: #3b5bdb;
+  box-shadow: 0 4px 8px rgba(76, 110, 245, 0.4);
+}
+
+.primary-btn:active {
+  transform: translateY(1px); /* Effet de clic */
+  box-shadow: none;
+}
+
+/* PREVIEW AREA */
+.preview-area {
+  flex: 1;
+  background-color: #f1f3f5;
+  padding: 32px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-card {
+  background-color: white;
+  width: 100%;
+  max-width: 900px;
+  height: 100%;
+  max-height: 80vh;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #dee2e6;
+}
+
+.preview-card-header {
+  padding: 12px 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #868e96;
+}
+
+.file-type-badge {
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #495057;
+}
+
+.preview-card-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  /* Pattern subtil */
+  background-image: radial-gradient(#dee2e6 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.no-preview-box {
+  background-color: rgba(255,255,255,0.9);
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #fff;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.icon-circle {
+  width: 80px;
+  height: 80px;
+  background-color: #edf2ff;
+  color: #4c6ef5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.no-preview-box h3 {
+  margin-bottom: 8px;
+  color: #343a40;
+}
+
+.no-preview-box p {
+  color: #868e96;
+  margin-bottom: 24px;
+}
+
+.link-btn {
+  color: #4c6ef5;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.link-btn:hover {
+  border-bottom-color: #4c6ef5;
+}
+
+.empty-placeholder {
+  text-align: center;
+  color: #adb5bd;
+  /* Correction: Assurer que l'état vide est bien centré et visible */
+  padding: 50px; 
+}
+
+.empty-placeholder h3 {
+    margin-top: 10px;
+    font-size: 1.25rem;
+    color: #495057;
+}
+
+.empty-placeholder p {
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.empty-icon-circle {
+  width: 100px;
+  height: 100px;
+  background-color: #e9ecef;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: #fff;
+}
+`;
 
 export default function App() {
   const [files, setFiles] = useState([]);
@@ -9,63 +380,55 @@ export default function App() {
   const [status, setStatus] = useState({ type: '', message: '' });
   const fileInputRef = useRef(null);
 
-  // 1. Charger les fichiers au démarrage (Mode API)
   useEffect(() => {
-    fetchFiles();
+    loadFiles(); // Utilisation de la nouvelle fonction loadFiles
   }, []);
 
-  const fetchFiles = async () => {
+  // Fonction wrapper pour charger les fichiers via le service
+  const loadFiles = async () => {
     try {
-      // Assurez-vous que votre backend Flask tourne sur le port 5000
-      // et que le proxy est configuré dans vite.config.js
-      const response = await fetch('/api/files');
-      if (response.ok) {
-        const data = await response.json();
-        setFiles(data);
-      }
+      const data = await fetchFilesFromApi(); // APPEL AU SERVICE API
+      setFiles(data);
     } catch (error) {
-      console.error("Erreur connexion:", error);
+      // Le service gère déjà les erreurs de connexion et de parsing
+      setStatus({ type: 'error', message: error.message || "Impossible de charger les fichiers." });
     }
   };
 
-  // 2. Gérer l'upload
+
+  // Gérer l'upload en utilisant le service
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     setStatus({ type: 'loading', message: 'Envoi en cours...' });
 
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // APPEL AU SERVICE API POUR L'UPLOAD
+      await uploadFileToApi(file);
+      
+      setStatus({ type: 'success', message: 'Fichier importé !' });
+      await loadFiles(); // Recharger la liste après succès
+      setTimeout(() => setStatus({ type: '', message: '' }), 3000);
 
-      if (response.ok) {
-        setStatus({ type: 'success', message: 'Fichier importé !' });
-        await fetchFiles(); // Rafraîchir la liste
-        
-        // Effacer le message après 3 secondes
-        setTimeout(() => setStatus({ type: '', message: '' }), 3000);
-      } else {
-        const err = await response.json();
-        setStatus({ type: 'error', message: err.error || "Erreur upload" });
-      }
     } catch (error) {
-      console.error("Erreur upload:", error);
-      setStatus({ type: 'error', message: "Erreur serveur" });
+      // Le service API renvoie un objet Error avec le message formaté
+      const errorMessage = error.message.includes('Failed to fetch') 
+        ? "Erreur réseau : Le backend est-il lancé sur le port 5000 ?" 
+        : error.message;
+
+      setStatus({ type: 'error', message: errorMessage });
     }
     
-    // Reset de l'input
     event.target.value = null;
   };
 
+
   return (
     <div className="app-container">
-      
+      {/* Injection des styles CSS */}
+      <style>{cssStyles}</style>
+
       {/* --- SIDEBAR --- */}
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
@@ -151,7 +514,8 @@ export default function App() {
               <div className="preview-card-body">
                 {selectedFile.type.includes('image') ? (
                   <img 
-                    src={selectedFile.url} 
+                    // Utilisation de getFileUrl() pour obtenir l'URL absolue
+                    src={getFileUrl(selectedFile.url)} 
                     alt="Preview" 
                     className="preview-image" 
                   />
@@ -163,7 +527,8 @@ export default function App() {
                     <h3>{selectedFile.name}</h3>
                     <p>L'aperçu n'est pas disponible.</p>
                     <a 
-                      href={selectedFile.url} 
+                      // Utilisation de getFileUrl() pour obtenir l'URL absolue
+                      href={getFileUrl(selectedFile.url)} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="link-btn"

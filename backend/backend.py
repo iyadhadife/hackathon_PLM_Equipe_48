@@ -1,136 +1,89 @@
 import os
-import shutil
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
+# On définit le dossier statique sur 'dist' (le build de Vite)
+app = Flask(__name__, static_folder='dist', static_url_path='')
 
-# --- CRUCIAL : Active CORS pour autoriser les requêtes venant de React ---
-CORS(app) 
+# IMPORTANT : Active CORS pour permettre à React (port différent) de communiquer
+CORS(app)
 
-# Configuration
+# Configuration du dossier d'upload
 UPLOAD_FOLDER = 'uploads'
-# Liste des extensions qu'on accepte de lire comme du texte
-TEXT_EXTENSIONS = {
-    'txt', 'json', 'xml', 'bpmn', 'csv', 'md', 
-    'js', 'ts', 'tsx', 'py', 'html', 'css', 'scss', 'sql', 'yml', 'yaml', 'env', 'xlsx'
-}
-
-# 1. Création du dossier d'upload s'il n'existe pas
+# Création automatique du dossier s'il n'existe pas
 if not os.path.exists(UPLOAD_FOLDER):
-    try:
-        os.makedirs(UPLOAD_FOLDER)
-        print(f"Dossier '{UPLOAD_FOLDER}' créé.")
-    except Exception as e:
-        print(f"Erreur création dossier: {e}")
+    os.makedirs(UPLOAD_FOLDER)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200MB max
+# Extensions autorisées
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'webp'}
 
-def is_text_file(filename):
-    """Détermine si on peut afficher le contenu du fichier."""
-    if '.' not in filename:
-        return False
-    ext = filename.rsplit('.', 1)[1].lower()
-    return ext in TEXT_EXTENSIONS
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# --- ROUTES API ---
+# --- ROUTE 1 : Servir l'application React ---
+# Cette route ne sert que si Flask sert le frontend (après npm run build)
+@app.route('/')
+def serve():
+    if os.path.exists(app.static_folder):
+        return send_from_directory(app.static_folder, 'index.html')
+    else:
+        return "Le dossier 'dist' n'existe pas. Veuillez exécuter 'npm run build' dans votre projet React.", 404
 
+# --- ROUTE 2 : API pour lister les fichiers (GET /api/files) ---
 @app.route('/api/files', methods=['GET'])
 def list_files():
-    """Renvoie la liste des fichiers."""
     files = []
-    try:
-        if os.path.exists(app.config['UPLOAD_FOLDER']):
-            for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                
-                if os.path.isfile(file_path):
-                    ext = filename.split('.')[-1].lower() if '.' in filename else 'inconnu'
-                    files.append({
-                        'id': filename,
-                        'name': filename,
-                        'size': os.path.getsize(file_path),
-                        'type': ext
-                    })
-        return jsonify(files)
-    except Exception as e:
-        print(f"Erreur list_files: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/upload', methods=['POST'])
-def upload_files():
-    """Gère l'upload multiple."""
-    if 'file' not in request.files:
-        return jsonify({'error': 'Aucune partie fichier dans la requête'}), 400
-    
-    files = request.files.getlist('file')
-    saved_count = 0
-    errors = []
-
-    for file in files:
-        if file.filename == '':
-            continue
+    if os.path.exists(app.config['UPLOAD_FOLDER']):
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             
-        try:
-            # secure_filename nettoie le nom (ex: "dossier/test.txt" -> "test.txt")
-            filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(save_path)
-            saved_count += 1
-        except Exception as e:
-            errors.append(f"Erreur sur {file.filename}: {str(e)}")
-    
-    return jsonify({
-        'message': f'{saved_count} fichiers sauvegardés.',
-        'errors': errors
-    }), 200
-
-@app.route('/api/files/<filename>', methods=['GET'])
-def get_file_content(filename):
-    """Lit le contenu d'un fichier."""
-    try:
-        safe_filename = secure_filename(filename)
-        path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
-        
-        if not os.path.exists(path):
-            return jsonify({'error': 'Fichier introuvable sur le serveur'}), 404
-            
-        # Si c'est un fichier texte, on essaie de le lire
-        if is_text_file(safe_filename):
-            try:
-                # 'errors="replace"' est CRUCIAL : il remplace les caractères illisibles au lieu de planter
-                with open(path, 'r', encoding='utf-8', errors='replace') as f:
-                    content = f.read()
+            if os.path.isfile(file_path) and not filename.startswith('.'):
+                file_type = 'image/jpeg' if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')) else 'application/octet-stream'
                 
-                return jsonify({
-                    'name': safe_filename,
-                    'content': content,
-                    'type': safe_filename.split('.')[-1].lower(),
-                    'isBinary': False
+                files.append({
+                    'id': filename,
+                    'name': filename,
+                    'type': file_type,
+                    'size': f"{os.path.getsize(file_path) / 1024:.2f} KB",
+                    # Chemin relatif que le frontend utilise pour construire l'URL absolue
+                    'url': f'/uploads/{filename}' 
                 })
-            except Exception as read_error:
-                return jsonify({'error': f"Erreur lecture fichier: {str(read_error)}"}), 500
-        else:
-            # Fichier binaire (Image, PDF, Exe...)
-            return jsonify({
-                'name': safe_filename,
-                'content': "⚠️ Ce fichier est binaire (Image ou exécutable) et ne peut pas être affiché en texte.",
-                'type': safe_filename.split('.')[-1].lower(),
-                'isBinary': True
-            })
+    return jsonify(files)
 
-    except Exception as e:
-        print(f"Erreur globale get_file: {e}")
-        return jsonify({'error': f"Erreur serveur: {str(e)}"}), 500
+# --- ROUTE 3 : API pour uploader un fichier (POST /api/upload) ---
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        # Retourne un message d'erreur clair si Flask ne reçoit pas de fichier
+        return jsonify({'error': 'Aucun fichier dans la requête (clé "file" manquante)'}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({'error': 'Nom de fichier vide'}), 400
+        
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(save_path)
+        
+        return jsonify({
+            'message': 'Fichier uploadé avec succès', 
+            'filename': filename,
+            'url': f'/uploads/{filename}'
+        }), 201
+    
+    return jsonify({'error': 'Type de fichier non autorisé'}), 400
 
-# Route de test simple pour voir si le serveur répond
-@app.route('/', methods=['GET'])
-def health_check():
-    return "Le serveur Flask fonctionne ! Utilisez les routes /api/..."
+# --- ROUTE 4 : Servir les fichiers uploadés (GET /uploads/<filename>) ---
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    # Sert le fichier depuis le dossier 'uploads'
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
-    # Lance le serveur sur le port 5000
-    print("Démarrage du serveur Flask sur http://127.0.0.1:5000")
+    # Lance le serveur sur le port 5000, qui est la cible de l'API
     app.run(debug=True, port=5000)
