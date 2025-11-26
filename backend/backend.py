@@ -17,7 +17,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Extensions autorisées
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'webp'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'webp', 'xls', 'xlsx'}
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -70,6 +70,8 @@ def upload_file():
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(save_path)
         
+        # --- CORRECTION APPORTÉE ICI ---
+        # Le statut 201 est explicitement renvoyé en plus du JSON
         return jsonify({
             'message': 'Fichier uploadé avec succès', 
             'filename': filename,
