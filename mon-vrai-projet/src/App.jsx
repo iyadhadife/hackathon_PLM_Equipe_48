@@ -3,7 +3,6 @@ import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X
 
 // --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
 import { fetchFilesFromApi, uploadFileToApi, getFileUrl } from './services/api.js';
-import Chatbot from './components/Chatbot.jsx';
 
 // Styles CSS intégrés pour garantir le fonctionnement en un seul fichier
 const cssStyles = `
@@ -373,66 +372,6 @@ body {
   color: #fff;
 }
 `;
-// import { useState } from 'react';
-
-// export default function MonBouton() {
-//   // Stocke le HTML reçu du Python
-//   const [contenuHtml, setContenuHtml] = useState(null);
-//   const [chargement, setChargement] = useState(false);
-
-//   const appelBackend = async () => {
-//     setChargement(true);
-//     try {
-//       // Remplacez l'URL par la vôtre
-//       const reponse = await fetch('http://localhost:5000/api/poste_piece');
-      
-//       if (!reponse.ok) {
-//         throw new Error('Erreur réseau');
-//       }
-
-//       // 1. On récupère le texte brut (le HTML)
-//       const htmlRecu = await reponse.text();
-//       setContenuHtml(htmlRecu);
-
-//     } catch (erreur) {
-//       console.error("Erreur:", erreur);
-//       alert("Impossible de contacter le backend Python");
-//     } finally {
-//       setChargement(false);
-//     }
-//   };
-
-//   return (
-//     <div style={{ padding: '20px' }}>
-      
-//       {/* LE BOUTON */}
-//       <button 
-//         onClick={appelBackend}
-//         disabled={chargement}
-//         style={{
-//           padding: '10px 20px',
-//           fontSize: '16px',
-//           backgroundColor: '#007bff',
-//           color: 'white',
-//           border: 'none',
-//           borderRadius: '5px',
-//           cursor: 'pointer'
-//         }}
-//       >
-//         {chargement ? 'Chargement...' : 'Récupérer le HTML'}
-//       </button>
-
-//       {/* L'AFFICHAGE DU HTML */}
-//       {contenuHtml && (
-//         <div 
-//           style={{ marginTop: '20px', border: '1px solid #ddd', padding: '15px' }}
-//           // 2. C'est ici qu'on injecte le HTML brut
-//           dangerouslySetInnerHTML={{ __html: contenuHtml }}
-//         />
-//       )}
-//     </div>
-//   );
-// }
 
 export default function App() {
   const [files, setFiles] = useState([]);
@@ -446,30 +385,6 @@ export default function App() {
   useEffect(() => {
     loadFiles(); // Utilisation de la nouvelle fonction loadFiles
   }, []);
-
-  // Fonction pour appeler le backend Python
-  const votreFonctionAppelBackend = async () => {
-    setStatus({ type: 'loading', message: 'Appel au backend...' });
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/poste_piece');
-      
-      if (!response.ok) {
-        throw new Error('Erreur réseau');
-      }
-
-      const htmlContent = await response.text();
-      console.log('HTML reçu:', htmlContent);
-      
-      setStatus({ type: 'success', message: 'Succès !' });
-      // Vous pouvez ajouter du code ici pour afficher le HTML reçu
-      
-      setTimeout(() => setStatus({ type: '', message: '' }), 3000);
-    } catch (error) {
-      console.error("Erreur:", error);
-      setStatus({ type: 'error', message: 'Impossible de contacter le backend' });
-    }
-  };
 
   // Fonction wrapper pour charger les fichiers via le service
   const loadFiles = async () => {
@@ -540,9 +455,6 @@ export default function App() {
       {/* Injection des styles CSS */}
       <style>{cssStyles}</style>
 
-      {/* Widget Chatbot */}
-      <Chatbot />
-
       {/* --- SIDEBAR --- */}
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
@@ -557,7 +469,10 @@ export default function App() {
             files.map(file => (
               <div 
                 key={file.id}
-                onClick={() => setSelectedFile(file)}
+                onClick={() => {
+                  setSelectedFile(file);
+                  setContenuDiv("");
+                }}
                 className={`file-item ${selectedFile?.id === file.id ? 'selected' : ''}`}
               >
                 <div className="file-icon-wrapper">
@@ -576,10 +491,10 @@ export default function App() {
       {/* --- CONTENU PRINCIPAL --- */}
       <div className="main-content">
         
-        {/* HEADER CORRIGÉ */}
+        {/* HEADER */}
         <header className="top-header">
           
-          {/* PARTIE GAUCHE (Menu + Titre) */}
+          {/* PARTIE GAUCHE (Menu + Titre + Bouton Python) */}
           <div className="header-left">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -590,10 +505,14 @@ export default function App() {
             <h1 className="page-title">
               {selectedFile ? selectedFile.name : 'Tableau de bord'}
             </h1>
-            {/* 1. Votre bouton Python */}
+            
+            {/* Bouton Python */}
             <div style={{ marginLeft: '15px' }}>
                 <button 
-                  onClick={votreFonctionAppelBackend} 
+                  onClick={() => {
+                    votreFonctionAppelBackend();
+                    setSelectedFile("");
+                  }} 
                   className="primary-btn"
                 >
                   Poste par pièces
@@ -601,11 +520,8 @@ export default function App() {
             </div>
           </div>
 
-          
-          {/* PARTIE DROITE (Tous les boutons sont ici) */}
+          {/* PARTIE DROITE (Status + Upload) */}
           <div className="header-right">
-
-            {/* 2. Messages de statut */}
             {status.message && (
               <div className={`status-badge ${status.type}`}>
                 {status.type === 'error' ? <AlertCircle size={14}/> : 
@@ -614,7 +530,6 @@ export default function App() {
               </div>
             )}
 
-            {/* 3. Input et Bouton Importer */}
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -632,63 +547,94 @@ export default function App() {
           
         </header>
 
-        {/* ZONE DE PRÉVISUALISATION */}
+        {/* ZONE DE PRÉVISUALISATION (Logique Corrigée) */}
         <main className="preview-area">
           
-          {selectedFile ? (
+          {/* CONDITION PRINCIPALE : Afficher la carte si un fichier OU du contenu Python est là */}
+          {(selectedFile || contenuDiv) ? (
             <div className="preview-card">
+              
+              {/* EN-TÊTE de la Carte */}
               <div className="preview-card-header">
-                 <span>ID: {selectedFile.id}</span>
-                 <span className="file-type-badge">{selectedFile.type}</span>
+                  {selectedFile ? (
+                    <>
+                        <span>ID: {selectedFile.id}</span>
+                        <span className="file-type-badge">{selectedFile.type}</span>
+                    </>
+                  ) : (
+                    // Titre générique si seul le résultat Python est affiché
+                    <span>Résultat de l'action</span>
+                  )}
               </div>
               
-              <div className="preview-card-body">
+              {/* CORPS : Utilise flex-column pour empiler les éléments */}
+              <div className="preview-card-body" style={{ flexDirection: 'column', display: 'flex' }}>
                 
-                {/* --- VOTRE DIV QUI REÇOIT LE HTML DE PYTHON --- */}
-                {/* Note : Il ne s'affichera que si 'contenuDiv' n'est pas vide */}
+                {/* --- 1. LE RÉSULTAT PYTHON (Toujours en haut s'il est présent) --- */}
                 {contenuDiv && (
                     <div 
-                      className="preview-card"
-                      style={{ marginBottom: '20px', border: '2px solid #007bff', padding: '10px' }}
-                      dangerouslySetInnerHTML={{ __html: contenuDiv }}
-                    />
-                )}
-                {/* ----------------------------------------------- */}
-
-                {selectedFile.type.includes('image') ? (
-                  <img 
-                    src={getFileUrl(selectedFile.url)} 
-                    alt="Preview" 
-                    className="preview-image" 
-                  />
-                ) : (
-                  <div className="no-preview-box">
-                    <div className="icon-circle">
-                      <FileText size={40} />
-                    </div>
-                    <h3>{selectedFile.name}</h3>
-                    <p>L'aperçu n'est pas disponible.</p>
-                    <a 
-                      href={getFileUrl(selectedFile.url)} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="link-btn"
+                      className="python-result-box"
+                      style={{ 
+                        width: '100%', 
+                        backgroundColor: '#fff',
+                        borderBottom: selectedFile ? '1px solid #eee' : 'none',
+                        padding: '20px',
+                        flexShrink: 0
+                      }}
                     >
-                      Ouvrir le fichier
-                    </a>
-                  </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <h3 style={{ margin: 0, color: '#007bff', fontSize: '1rem' }}>Réponse du Backend</h3>
+                            <button 
+                                onClick={() => setContenuDiv("")} 
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#999' }}
+                            >
+                                ✖
+                            </button>
+                        </div>
+                        {/* Injection du HTML */}
+                        <div dangerouslySetInnerHTML={{ __html: contenuDiv }} />
+                    </div>
                 )}
+
+                {/* --- 2. L'APERÇU DU FICHIER (S'affiche en dessous s'il est présent) --- */}
+                {selectedFile && (
+                    <div style={{ flex: 1, padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                        {selectedFile.type.includes('image') ? (
+                          <img 
+                            src={getFileUrl(selectedFile.url)} 
+                            alt="Preview" 
+                            className="preview-image" 
+                          />
+                        ) : (
+                          <div className="no-preview-box">
+                            <div className="icon-circle">
+                              <FileText size={40} />
+                            </div>
+                            <h3>{selectedFile.name}</h3>
+                            <p>L'aperçu n'est pas disponible.</p>
+                            <a 
+                              href={getFileUrl(selectedFile.url)} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="link-btn"
+                            >
+                              Ouvrir le fichier
+                            </a>
+                          </div>
+                        )}
+                    </div>
+                )}
+
               </div>
             </div>
           ) : (
+            // --- CAS VIDE : Si selectedFile est null ET contenuDiv est vide ---
             <div className="empty-placeholder">
               <div className="empty-icon-circle">
                 <Upload size={40} />
               </div>
               <h3>Aucun fichier sélectionné</h3>
               <p>Sélectionnez un document ou importez-en un nouveau.</p>
-              
-              {/* OPTIONNEL : Si vous voulez voir le résultat Python même sans fichier sélectionné, déplacez le bloc 'contenuDiv' ici aussi */}
             </div>
           )}
         </main>
