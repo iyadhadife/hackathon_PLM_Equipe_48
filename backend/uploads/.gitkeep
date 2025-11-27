@@ -1,0 +1,2 @@
+# Ce fichier permet de garder le dossier uploads/ dans Git
+# tout en ignorant son contenu (voir .gitignore racine)

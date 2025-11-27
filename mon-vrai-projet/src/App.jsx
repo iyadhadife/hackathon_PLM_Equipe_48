@@ -373,6 +373,67 @@ body {
 }
 `;
 
+// import { useState } from 'react';
+
+// export default function MonBouton() {
+//   // Stocke le HTML reçu du Python
+//   const [contenuHtml, setContenuHtml] = useState(null);
+//   const [chargement, setChargement] = useState(false);
+
+//   const appelBackend = async () => {
+//     setChargement(true);
+//     try {
+//       // Remplacez l'URL par la vôtre
+//       const reponse = await fetch('http://localhost:5000/api/poste_piece');
+      
+//       if (!reponse.ok) {
+//         throw new Error('Erreur réseau');
+//       }
+
+//       // 1. On récupère le texte brut (le HTML)
+//       const htmlRecu = await reponse.text();
+//       setContenuHtml(htmlRecu);
+
+//     } catch (erreur) {
+//       console.error("Erreur:", erreur);
+//       alert("Impossible de contacter le backend Python");
+//     } finally {
+//       setChargement(false);
+//     }
+//   };
+
+//   return (
+//     <div style={{ padding: '20px' }}>
+      
+//       {/* LE BOUTON */}
+//       <button 
+//         onClick={appelBackend}
+//         disabled={chargement}
+//         style={{
+//           padding: '10px 20px',
+//           fontSize: '16px',
+//           backgroundColor: '#007bff',
+//           color: 'white',
+//           border: 'none',
+//           borderRadius: '5px',
+//           cursor: 'pointer'
+//         }}
+//       >
+//         {chargement ? 'Chargement...' : 'Récupérer le HTML'}
+//       </button>
+
+//       {/* L'AFFICHAGE DU HTML */}
+//       {contenuHtml && (
+//         <div 
+//           style={{ marginTop: '20px', border: '1px solid #ddd', padding: '15px' }}
+//           // 2. C'est ici qu'on injecte le HTML brut
+//           dangerouslySetInnerHTML={{ __html: contenuHtml }}
+//         />
+//       )}
+//     </div>
+//   );
+// }
+
 export default function App() {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
