@@ -48,9 +48,12 @@ def serve():
     else:
         return "Le dossier 'dist' n'existe pas. Veuillez exécuter 'npm run build' dans votre projet React.", 404
 
-@app.route('/button/poste_pieces', methods=['GET'])
-def poste_pieces():
-    return None
+@app.route('/api/poste_piece', methods=['GET'])
+def poste_piece():
+    df = build_production_chains('uploads/MES_Extraction.xlsx', 
+                                 'uploads/PLM_DataSet.xlsx', 
+                                 'uploads/ERP_Equipes_Airplus.xlsx')
+    return html_poste_pieces(df,1)
 
 # --- ROUTE 2 : API pour lister les fichiers (GET /api/files) ---
 @app.route('/api/files', methods=['GET'])
