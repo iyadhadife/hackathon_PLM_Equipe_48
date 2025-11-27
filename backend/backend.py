@@ -91,12 +91,12 @@ def uploaded_file(filename):
     # Sert le fichier depuis le dossier 'uploads'
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/api/poste_piece', methods=['GET'])
+@app.route('/api/poste_piece', methods=['GET','POST'])
 def poste_piece():
     df = build_production_chains('uploads/MES_Extraction.xlsx', 
                                  'uploads/PLM_DataSet.xlsx', 
                                  'uploads/ERP_Equipes_Airplus.xlsx')
-    return html_poste_pieces(df)
+    return html_poste_pieces(df,2)
 
 if __name__ == '__main__':
     # Lance le serveur sur le port 5000, qui est la cible de l'API
