@@ -92,4 +92,3 @@ export const sendChatMessage = async (question) => {
     throw error;
   }
 };
-
