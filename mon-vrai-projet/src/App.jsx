@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X } from 'lucide-react';
+import Chatbot from './components/Chatbot.jsx';
 
 // --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
 import { fetchFilesFromApi, uploadFileToApi, getFileUrl } from './services/api.js';
@@ -455,6 +456,9 @@ export default function App() {
       {/* Injection des styles CSS */}
       <style>{cssStyles}</style>
 
+      {/* Widget Chatbot */}
+      <Chatbot />
+      
       {/* --- SIDEBAR --- */}
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
