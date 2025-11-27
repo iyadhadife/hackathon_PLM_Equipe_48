@@ -372,72 +372,15 @@ body {
   color: #fff;
 }
 `;
-import { useState } from 'react';
 
-export default function MonBouton() {
-  // Stocke le HTML reçu du Python
-  const [contenuHtml, setContenuHtml] = useState(null);
-  const [chargement, setChargement] = useState(false);
-
-  const appelBackend = async () => {
-    setChargement(true);
-    try {
-      // Remplacez l'URL par la vôtre
-      const reponse = await fetch('http://localhost:5000/api/poste_piece');
-      
-      if (!reponse.ok) {
-        throw new Error('Erreur réseau');
-      }
-
-      // 1. On récupère le texte brut (le HTML)
-      const htmlRecu = await reponse.text();
-      setContenuHtml(htmlRecu);
-
-    } catch (erreur) {
-      console.error("Erreur:", erreur);
-      alert("Impossible de contacter le backend Python");
-    } finally {
-      setChargement(false);
-    }
-  };
-
-  return (
-    <div style={{ padding: '20px' }}>
-      
-      {/* LE BOUTON */}
-      <button 
-        onClick={appelBackend}
-        disabled={chargement}
-        style={{
-          padding: '10px 20px',
-          fontSize: '16px',
-          backgroundColor: '#007bff',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer'
-        }}
-      >
-        {chargement ? 'Chargement...' : 'Récupérer le HTML'}
-      </button>
-
-      {/* L'AFFICHAGE DU HTML */}
-      {contenuHtml && (
-        <div 
-          style={{ marginTop: '20px', border: '1px solid #ddd', padding: '15px' }}
-          // 2. C'est ici qu'on injecte le HTML brut
-          dangerouslySetInnerHTML={{ __html: contenuHtml }}
-        />
-      )}
-    </div>
-  );
-}
 export default function App() {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [status, setStatus] = useState({ type: '', message: '' });
   const fileInputRef = useRef(null);
+  const [contenuDiv, setContenuDiv] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadFiles(); // Utilisation de la nouvelle fonction loadFiles
@@ -451,6 +394,32 @@ export default function App() {
     } catch (error) {
       // Le service gère déjà les erreurs de connexion et de parsing
       setStatus({ type: 'error', message: error.message || "Impossible de charger les fichiers." });
+    }
+  };
+
+  const votreFonctionAppelBackend = async () => {
+    // Optionnel : état de chargement
+    setLoading(true); 
+
+    try {
+      // En GET, on appelle juste l'URL directement
+      // Si vous devez passer un ID, ça se fait dans l'URL (ex: .../api/poste_piece?id=12)
+      const reponse = await fetch('http://localhost:5000/api/poste_piece');
+      
+      if (reponse.ok) {
+        // On récupère le texte (HTML)
+        const htmlRecu = await reponse.text();
+        
+        // On met à jour la variable qui est liée à votre DIV existant
+        setContenuDiv(htmlRecu);
+      } else {
+        console.error("Erreur serveur");
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -519,8 +488,10 @@ export default function App() {
       {/* --- CONTENU PRINCIPAL --- */}
       <div className="main-content">
         
-        {/* HEADER */}
+        {/* HEADER CORRIGÉ */}
         <header className="top-header">
+          
+          {/* PARTIE GAUCHE (Menu + Titre) */}
           <div className="header-left">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -531,10 +502,22 @@ export default function App() {
             <h1 className="page-title">
               {selectedFile ? selectedFile.name : 'Tableau de bord'}
             </h1>
+            {/* 1. Votre bouton Python */}
+            <div style={{ marginLeft: '15px' }}>
+                <button 
+                  onClick={votreFonctionAppelBackend} 
+                  className="primary-btn"
+                >
+                  Poste par pièces
+                </button>
+            </div>
           </div>
+
           
+          {/* PARTIE DROITE (Tous les boutons sont ici) */}
           <div className="header-right">
-            {/* Messages de statut */}
+
+            {/* 2. Messages de statut */}
             {status.message && (
               <div className={`status-badge ${status.type}`}>
                 {status.type === 'error' ? <AlertCircle size={14}/> : 
@@ -543,6 +526,7 @@ export default function App() {
               </div>
             )}
 
+            {/* 3. Input et Bouton Importer */}
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -557,38 +541,12 @@ export default function App() {
               <span>Importer</span>
             </button>
           </div>
-          <div className="header-left">
-    <button 
-      onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-      className="icon-btn"
-    >
-      <Menu size={20}/>
-    </button>
-    <h1 className="page-title">
-      {selectedFile ? selectedFile.name : 'Tableau de bord'}
-    </h1>
-  </div>
-  <div className="header-right">
-    {/* --- DÉBUT : VOTRE NOUVELLE ZONE DE BOUTONS --- */}
-    <div className="action-buttons-group" style={{ display: 'flex', gap: '10px', marginRight: '15px' }}>
-        
-        {/* Exemple de bouton connecté à votre backend Python */}
-        <button 
-            onClick={votreFonctionAppelBackend} 
-            className="secondary-btn" // Assurez-vous d'avoir du CSS pour cette classe ou utilisez style={{...}}
-        >
-            Action Python
-        </button>
-
-        {/* Vous pourrez ajouter d'autres boutons ici plus tard */}
-        {/* <button>Autre Action</button> */}
-
-    </div>
-  </div>
+          
         </header>
 
         {/* ZONE DE PRÉVISUALISATION */}
         <main className="preview-area">
+          
           {selectedFile ? (
             <div className="preview-card">
               <div className="preview-card-header">
@@ -597,9 +555,20 @@ export default function App() {
               </div>
               
               <div className="preview-card-body">
+                
+                {/* --- VOTRE DIV QUI REÇOIT LE HTML DE PYTHON --- */}
+                {/* Note : Il ne s'affichera que si 'contenuDiv' n'est pas vide */}
+                {contenuDiv && (
+                    <div 
+                      className="preview-card"
+                      style={{ marginBottom: '20px', border: '2px solid #007bff', padding: '10px' }}
+                      dangerouslySetInnerHTML={{ __html: contenuDiv }}
+                    />
+                )}
+                {/* ----------------------------------------------- */}
+
                 {selectedFile.type.includes('image') ? (
                   <img 
-                    // Utilisation de getFileUrl() pour obtenir l'URL absolue
                     src={getFileUrl(selectedFile.url)} 
                     alt="Preview" 
                     className="preview-image" 
@@ -612,7 +581,6 @@ export default function App() {
                     <h3>{selectedFile.name}</h3>
                     <p>L'aperçu n'est pas disponible.</p>
                     <a 
-                      // Utilisation de getFileUrl() pour obtenir l'URL absolue
                       href={getFileUrl(selectedFile.url)} 
                       target="_blank" 
                       rel="noopener noreferrer"
@@ -631,6 +599,8 @@ export default function App() {
               </div>
               <h3>Aucun fichier sélectionné</h3>
               <p>Sélectionnez un document ou importez-en un nouveau.</p>
+              
+              {/* OPTIONNEL : Si vous voulez voir le résultat Python même sans fichier sélectionné, déplacez le bloc 'contenuDiv' ici aussi */}
             </div>
           )}
         </main>
