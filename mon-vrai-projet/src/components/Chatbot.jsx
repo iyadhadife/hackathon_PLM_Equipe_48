@@ -86,6 +86,76 @@ export default function Chatbot() {
     }
   };
 
+  // Fonction pour formatter le texte avec sauts de ligne et mise en forme
+  const formatMessageText = (text) => {
+    if (!text) return null;
+
+    // Convertir les sauts de ligne en <br />
+    let formatted = text.split('\n').map((line, i) => {
+      // Gérer les lignes vides
+      if (line.trim() === '') {
+        return <br key={i} />;
+      }
+
+      // Détecter et formatter les titres avec émojis
+      if (line.match(/^[🏆🚨📊⚠️👥💡ℹ️✅❌]/)) {
+        return (
+          <div key={i} className="message-title">
+            {formatInlineStyles(line)}
+          </div>
+        );
+      }
+
+      // Détecter les listes numérotées
+      if (line.match(/^\d+\.\s/)) {
+        return (
+          <div key={i} className="message-list-item numbered">
+            {formatInlineStyles(line)}
+          </div>
+        );
+      }
+
+      // Détecter les puces
+      if (line.match(/^[•·→►]\s/) || line.trim().startsWith('•')) {
+        return (
+          <div key={i} className="message-list-item bullet">
+            {formatInlineStyles(line)}
+          </div>
+        );
+      }
+
+      // Détecter les sous-items (indentation)
+      if (line.match(/^\s{2,}[•·⏱️📋⚠️👉]/)) {
+        return (
+          <div key={i} className="message-sub-item">
+            {formatInlineStyles(line.trim())}
+          </div>
+        );
+      }
+
+      // Ligne normale
+      return (
+        <div key={i} className="message-line">
+          {formatInlineStyles(line)}
+        </div>
+      );
+    });
+
+    return <>{formatted}</>;
+  };
+
+  // Fonction pour formatter les styles inline (gras, etc.)
+  const formatInlineStyles = (text) => {
+    // Convertir **texte** en gras
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   // Bouton flottant pour ouvrir/fermer le chat
   if (!isOpen) {
     return (
@@ -140,7 +210,9 @@ export default function Chatbot() {
                     {msg.text.includes('<table') ? (
                       <div dangerouslySetInnerHTML={{ __html: msg.text }} />
                     ) : (
-                      <div className="message-text">{msg.text}</div>
+                      <div className="message-text">
+                        {formatMessageText(msg.text)}
+                      </div>
                     )}
                     
                     {/* Afficher le code Pandas si disponible (optionnel) */}
@@ -356,6 +428,62 @@ const chatbotStyles = `
   font-size: 0.7rem;
   color: #adb5bd;
   padding: 0 4px;
+}
+
+/* Formatage du texte des messages */
+.message-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.message-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 8px;
+  color: #2d3748;
+  line-height: 1.5;
+}
+
+.message-line {
+  line-height: 1.6;
+  margin: 2px 0;
+}
+
+.message-list-item {
+  line-height: 1.6;
+  margin: 6px 0;
+  padding-left: 4px;
+}
+
+.message-list-item.numbered {
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.message-list-item.bullet {
+  padding-left: 8px;
+  color: #4a5568;
+}
+
+.message-sub-item {
+  padding-left: 24px;
+  line-height: 1.5;
+  margin: 4px 0;
+  color: #4a5568;
+  font-size: 0.88rem;
+}
+
+.message-text strong {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Espacement pour les émojis */
+.message-title::before,
+.message-list-item::before,
+.message-sub-item::before {
+  margin-right: 6px;
 }
 
 /* Indicateur de frappe */
