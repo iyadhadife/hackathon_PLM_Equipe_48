@@ -156,13 +156,14 @@ body {
 
 /* HEADER */
 .top-header {
-  height: 64px;
+  height: auto;
+  min-height: 140px;
   background-color: #ffffff;
   border-bottom: 1px solid #e9ecef;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16px 24px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Légère ombre */
   z-index: 10;
 }
@@ -171,6 +172,7 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .icon-btn {
@@ -254,9 +256,327 @@ body {
   box-shadow: 0 4px 8px rgba(230, 126, 34, 0.4);
 }
 
+.primary-btn[style*="background-color: #8e44ad"]:hover {
+  background-color: #7a3a8f;
+  box-shadow: 0 4px 8px rgba(142, 68, 173, 0.4);
+}
+
 .primary-btn:active {
   transform: translateY(1px); /* Effet de clic */
   box-shadow: none;
+}
+
+/* Modal Workflow */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.modal-btn-primary {
+  background-color: #8e44ad;
+  color: white;
+}
+
+.modal-btn-primary:hover {
+  background-color: #7a3a8f;
+}
+
+.modal-btn-secondary {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.modal-btn-secondary:hover {
+  background-color: #dee2e6;
+}
+
+/* Quick Access Section - Volet Déroulant */
+.quick-access-section {
+  margin-top: 16px;
+  border-top: 1px solid #e9ecef;
+  padding-top: 12px;
+}
+
+.quick-access-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s;
+}
+
+.quick-access-toggle:hover {
+  background-color: #e9ecef;
+  border-color: #4c6ef5;
+}
+
+.quick-access-toggle .arrow {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-size: 0.8rem;
+}
+
+.quick-access-toggle .arrow.open {
+  transform: rotate(180deg);
+}
+
+.quick-access-panel {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quick-access-btn {
+  padding: 8px 14px;
+  background-color: #fff5f5;
+  color: #c92a2a;
+  border: 1px solid #ffa8a8;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.quick-access-btn:hover {
+  background-color: #ffe3e3;
+  border-color: #ff8787;
+  box-shadow: 0 2px 8px rgba(201, 42, 42, 0.2);
+}
+
+.quick-access-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.quick-access-btn:active {
+  transform: translateY(1px);
+}
+
+/* Boutons Container */
+.buttons-container {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Poste Selection Group */
+.poste-selection-group {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 12px;
+}
+
+.poste-selection-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.poste-dropdown-inline {
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 200px;
+}
+
+.poste-dropdown-inline:hover {
+  border-color: #4c6ef5;
+  background-color: #f8f9fa;
+}
+
+.poste-dropdown-inline:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.poste-btn {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  white-space: nowrap;
+}
+
+.poste-btn:hover {
+  background-color: #bbdefb;
+  border-color: #64b5f6;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+}
+
+.poste-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+/* Quick Access Content */
+.quick-access-content {
+  padding: 12px 0;
+}
+
+/* Quick Actions Group */
+.quick-actions-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.delays-btn {
+  background-color: #fff5f5;
+  color: #c92a2a;
+  border: 1px solid #ffa8a8;
+}
+
+.delays-btn:hover {
+  background-color: #ffe3e3;
+  border-color: #ff8787;
+  box-shadow: 0 2px 8px rgba(201, 42, 42, 0.2);
+}
+
+.delays-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+/* Quick Access Footer */
+.quick-access-footer {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 12px;
+}
+
+.close-btn {
+  background-color: #f1f3f5;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  flex: 1;
+  margin-left: auto;
+}
+
+.close-btn:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn:active {
+  transform: translateY(1px);
 }
 
 .poste-selector {
@@ -495,6 +815,10 @@ export default function App() {
   const [contenuDiv, setContenuDiv] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedPoste, setSelectedPoste] = useState("");
+  const [showWorkflowModal, setShowWorkflowModal] = useState(false);
+  const [workflowStep, setWorkflowStep] = useState("");
+  const [workflowMaxNodes, setWorkflowMaxNodes] = useState(50);
+  const [isQuickAccessOpen, setIsQuickAccessOpen] = useState(false);
 
   // Liste des postes disponibles
   const postes = [
@@ -619,6 +943,60 @@ export default function App() {
     }
   };
 
+  const afficherWorkflowSankey = async (step, maxNodes) => {
+    setLoading(true);
+
+    try {
+      const url = new URL('http://localhost:5000/api/step_workflow');
+      if (step) {
+        url.searchParams.append('step', encodeURIComponent(step));
+      }
+      url.searchParams.append('max_nodes', maxNodes);
+      
+      const reponse = await fetch(url.toString());
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Workflow Sankey chargé' });
+        setSelectedFile("");
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const afficherRetards10min = async () => {
+    setLoading(true);
+
+    try {
+      const reponse = await fetch('http://localhost:5000/api/retards_10min');
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Retards > 10 min chargés' });
+        setSelectedFile("");
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Gérer l'upload en utilisant le service
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
@@ -705,29 +1083,8 @@ export default function App() {
               {selectedFile ? selectedFile.name : 'Tableau de bord'}
             </h1>
             
-            {/* Menu Déroulant + Boutons */}
-            <div className="poste-selector">
-              <select 
-                value={selectedPoste} 
-                onChange={(e) => setSelectedPoste(e.target.value)}
-                className="poste-dropdown"
-              >
-                <option value="">-- Sélectionner un poste --</option>
-                {postes.map((poste, index) => (
-                  <option key={index} value={poste}>{poste}</option>
-                ))}
-              </select>
-              <button 
-                onClick={() => {
-                  votreFonctionAppelBackend();
-                  setSelectedFile("");
-                }} 
-                className="primary-btn"
-                disabled={loading || !selectedPoste}
-                title={!selectedPoste ? "Veuillez sélectionner un poste" : ""}
-              >
-                {loading ? "Chargement..." : "Poste par pièces"}
-              </button>
+            {/* Boutons principaux */}
+            <div className="buttons-container">
               <button 
                 onClick={afficherExperienceParWeekStep}
                 className="primary-btn"
@@ -746,6 +1103,81 @@ export default function App() {
               >
                 {loading ? "Chargement..." : "Coûts par étape"}
               </button>
+              <button 
+                onClick={() => setShowWorkflowModal(true)}
+                className="primary-btn"
+                disabled={loading}
+                style={{ backgroundColor: '#8e44ad' }}
+                title="Affiche le workflow Sankey"
+              >
+                {loading ? "Chargement..." : "Workflow Sankey"}
+              </button>
+            </div>
+
+            {/* Bouton Retards indépendant */}
+            <button 
+              onClick={afficherRetards10min}
+              className="primary-btn"
+              disabled={loading}
+              style={{ backgroundColor: '#e74c3c' }}
+              title="Affiche les retards > 10 minutes"
+            >
+              {loading ? "Chargement..." : "⚠️ Retards > 10 min"}
+            </button>
+
+            {/* Volet déroulant - Sélection Poste + Accès rapide */}
+            <div className="quick-access-section">
+              <button 
+                className="quick-access-toggle"
+                onClick={() => setIsQuickAccessOpen(!isQuickAccessOpen)}
+              >
+                <span>▾ Accès rapide</span>
+                <span className={`arrow ${isQuickAccessOpen ? 'open' : ''}`}>▼</span>
+              </button>
+              
+              {isQuickAccessOpen && (
+                <div className="quick-access-panel">
+                  <div className="quick-access-content">
+                    {/* Sélection du poste */}
+                    <div className="poste-selection-group">
+                      <label htmlFor="poste-select">Sélectionner un poste :</label>
+                      <select 
+                        id="poste-select"
+                        value={selectedPoste} 
+                        onChange={(e) => setSelectedPoste(e.target.value)}
+                        className="poste-dropdown-inline"
+                      >
+                        <option value="">-- Sélectionner un poste --</option>
+                        {postes.map((poste, index) => (
+                          <option key={index} value={poste}>{poste}</option>
+                        ))}
+                      </select>
+                      <button 
+                        onClick={() => {
+                          votreFonctionAppelBackend();
+                          setSelectedFile("");
+                        }} 
+                        className="quick-access-btn poste-btn"
+                        disabled={loading || !selectedPoste}
+                        title={!selectedPoste ? "Veuillez sélectionner un poste" : ""}
+                      >
+                        {loading ? "Chargement..." : "📊 Poste par pièces"}
+                      </button>
+                    </div>
+                    
+                    {/* Bouton de fermeture */}
+                    <div className="quick-access-footer">
+                      <button 
+                        onClick={() => setIsQuickAccessOpen(false)}
+                        className="quick-access-btn close-btn"
+                        title="Fermer l'accès rapide"
+                      >
+                        ✕ Fermer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -867,6 +1299,60 @@ export default function App() {
             </div>
           )}
         </main>
+
+        {/* Modal Workflow */}
+        {showWorkflowModal && (
+          <div className="modal-overlay" onClick={() => setShowWorkflowModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">Configuration du Workflow Sankey</div>
+              
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Étape (optionnel - laisser vide pour toutes les étapes)</label>
+                  <select 
+                    value={workflowStep} 
+                    onChange={(e) => setWorkflowStep(e.target.value)}
+                  >
+                    <option value="">-- Toutes les étapes --</option>
+                    {postes.map((poste, index) => (
+                      <option key={index} value={poste}>{poste}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Nombre maximum de nœuds par niveau</label>
+                  <input 
+                    type="number" 
+                    min="5" 
+                    max="200" 
+                    value={workflowMaxNodes}
+                    onChange={(e) => setWorkflowMaxNodes(parseInt(e.target.value) || 50)}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  className="modal-btn modal-btn-secondary"
+                  onClick={() => setShowWorkflowModal(false)}
+                >
+                  Annuler
+                </button>
+                <button 
+                  className="modal-btn modal-btn-primary"
+                  onClick={() => {
+                    afficherWorkflowSankey(workflowStep || null, workflowMaxNodes);
+                    setShowWorkflowModal(false);
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? "Chargement..." : "Afficher"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

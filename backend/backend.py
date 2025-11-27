@@ -451,6 +451,46 @@ def format_result_as_human_readable(result):
     return str(result)
 
 
+# --- ROUTE 8 : Workflow Sankey ---
+@app.route('/api/step_workflow', methods=['GET'])
+def step_workflow():
+    try:
+        # Récupérer les paramètres
+        selected_step = request.args.get('step', None)
+        max_nodes = request.args.get('max_nodes', 50, type=int)
+        
+        # Construire les chaînes de production
+        production_chains = build_production_chains(
+            'uploads/MES_Extraction.xlsx',
+            'uploads/PLM_DataSet.xlsx',
+            'uploads/ERP_Equipes_Airplus.xlsx'
+        )
+        
+        # Générer le HTML avec le workflow Sankey
+        html = html_step_workflow(production_chains, selected_step=selected_step, max_nodes_per_level=max_nodes)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
+
+# --- ROUTE 9 : Retards > 10 minutes ---
+@app.route('/api/retards_10min', methods=['GET'])
+def retards_10min():
+    try:
+        # Construire les chaînes de production
+        production_chains = build_production_chains(
+            'uploads/MES_Extraction.xlsx',
+            'uploads/PLM_DataSet.xlsx',
+            'uploads/ERP_Equipes_Airplus.xlsx'
+        )
+        
+        # Générer le HTML avec les retards
+        html = html_retards_10min(production_chains)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
+
 # @app.route('/api/poste_piece', methods=['GET'])
 # def poste_piece():
 #     df = build_production_chains('uploads/MES_Extraction.xlsx', 

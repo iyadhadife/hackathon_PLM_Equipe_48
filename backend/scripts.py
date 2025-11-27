@@ -3,6 +3,7 @@ import numpy as np
 import re
 import plotly.express as px
 import datetime
+import plotly.graph_objects as go
 
 # ======================================================
 # 1. FONCTION DE FUSION : MES + PLM + ERP
@@ -1149,7 +1150,7 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
  
     return html
 
-
+#erreur a la ligne 290 j'ai enlevé un espace entre les deux points et le mot "reset_index"
 def html_costs_by_step(mes: pd.DataFrame,
                        plm: pd.DataFrame,
                        erp: pd.DataFrame) -> str:
@@ -1471,3 +1472,299 @@ def html_costs_by_step(mes: pd.DataFrame,
     """
  
     return html
+
+
+def html_step_workflow(
+    production_chains: pd.DataFrame,
+    selected_step: str | None = None,
+    max_nodes_per_level: int = 50,
+) -> str:
+    """
+    Retourne un graphe Sankey (au format HTML) :
+        Étape (Nom MES) -> Poste -> Pièce
+ 
+    Parameters
+    ----------
+    production_chains : DataFrame
+        DF fusionné (MES + PLM + ERP) contenant au moins :
+        - 'Poste'
+        - 'Code_piece'
+        - 'Nom' ou 'Nom_operation' (étape MES)
+    selected_step : str ou None
+        - None  : toutes les étapes
+        - "Assemblage aile gauche" (par ex.) : filtre sur cette étape
+    max_nodes_per_level : int
+        Limite le nombre de noeuds par niveau (pour rester lisible)
+ 
+    Retour
+    ------
+    html : str
+        Code HTML du graf Sankey (fig.to_html)
+    """
+ 
+    df = production_chains.copy()
+ 
+    # 1) Choix de la colonne d'étape
+    if "Nom" in df.columns:
+        step_col = "Nom"
+    elif "Nom_operation" in df.columns:
+        step_col = "Nom_operation"
+    else:
+        return "<p>Impossible de trouver la colonne 'Nom' (ou 'Nom_operation').</p>"
+ 
+    # 2) Filtre sur une étape si demandé
+    if selected_step is not None:
+        df = df[df[step_col].astype(str) == str(selected_step)]
+        if df.empty:
+            return f"<p>Aucune donnée pour l'étape : {selected_step}</p>"
+ 
+    # 3) On garde uniquement les lignes complètes
+    df = df.dropna(subset=[step_col, "Poste", "Code_piece"])
+    if df.empty:
+        return "<p>Aucune donnée à afficher après filtrage.</p>"
+ 
+    # ======================
+    # 4. Définition des noeuds
+    # ======================
+ 
+    # Étapes
+    steps = df[step_col].astype(str).unique().tolist()
+    if len(steps) > max_nodes_per_level:
+        top_steps = (
+            df.groupby(step_col)
+              .size()
+              .sort_values(ascending=False)
+              .head(max_nodes_per_level)
+              .index.astype(str)
+              .tolist()
+        )
+        steps = top_steps
+        df = df[df[step_col].isin(steps)]
+    step_labels = [f"Étape : {s}" for s in steps]
+ 
+    # Postes
+    postes = sorted(df["Poste"].unique())
+    if len(postes) > max_nodes_per_level:
+        top_postes = (
+            df.groupby("Poste")
+              .size()
+              .sort_values(ascending=False)
+              .head(max_nodes_per_level)
+              .index.tolist()
+        )
+        postes = top_postes
+        df = df[df["Poste"].isin(postes)]
+    poste_labels = [f"Poste {int(p)}" for p in postes]
+ 
+    # Pièces
+    pieces = df["Code_piece"].dropna().astype(str).unique().tolist()
+    if len(pieces) > max_nodes_per_level:
+        top_pieces = (
+            df.groupby("Code_piece")
+              .size()
+              .sort_values(ascending=False)
+              .head(max_nodes_per_level)
+              .index.astype(str)
+              .tolist()
+        )
+        pieces = top_pieces
+        df = df[df["Code_piece"].isin(pieces)]
+    piece_labels = [f"Pièce : {c}" for c in pieces]
+ 
+    # ======================
+    # 5. Indexation des noeuds
+    # ======================
+ 
+    labels = step_labels + poste_labels + piece_labels
+ 
+    idx_step = {s: i for s, i in zip(steps, range(len(step_labels)))}
+    offset_poste = len(step_labels)
+    idx_poste = {p: offset_poste + i for p, i in zip(postes, range(len(postes)))}
+    offset_piece = offset_poste + len(postes)
+    idx_piece = {c: offset_piece + i for c, i in zip(pieces, range(len(pieces)))}
+ 
+    # ======================
+    # 6. Construction des liens (edges)
+    # ======================
+ 
+    sources = []
+    targets = []
+    values = []
+ 
+    # 6.1 Étape -> Poste
+    df_ep = (
+        df[df["Poste"].isin(postes) & df[step_col].isin(steps)]
+        .groupby([step_col, "Poste"])
+        .size()
+        .reset_index(name="val")
+    )
+    for _, row in df_ep.iterrows():
+        etape = str(row[step_col])
+        poste = row["Poste"]
+        if etape in idx_step and poste in idx_poste:
+            sources.append(idx_step[etape])
+            targets.append(idx_poste[poste])
+            values.append(row["val"])
+ 
+    # 6.2 Poste -> Pièce
+    df_pp = (
+        df[df["Poste"].isin(postes) & df["Code_piece"].isin(pieces)]
+        .groupby(["Poste", "Code_piece"])
+        .size()
+        .reset_index(name="val")
+    )
+    for _, row in df_pp.iterrows():
+        poste = row["Poste"]
+        piece = str(row["Code_piece"])
+        if poste in idx_poste and piece in idx_piece:
+            sources.append(idx_poste[poste])
+            targets.append(idx_piece[piece])
+            values.append(row["val"])
+ 
+    if not sources:
+        return "<p>Pas de liens à afficher (sources/targets vides).</p>"
+ 
+    # ======================
+    # 7. Création de la figure Plotly
+    # ======================
+ 
+    link = dict(source=sources, target=targets, value=values)
+    node = dict(label=labels, pad=15, thickness=15)
+ 
+    titre = "Workflow Étape (Nom MES) → Poste → Pièce"
+    if selected_step is not None:
+        titre += f" — {selected_step}"
+ 
+    fig = go.Figure(data=[go.Sankey(node=node, link=link)])
+    fig.update_layout(title_text=titre, font_size=10)
+ 
+    # Retour HTML (sans <html><body>, juste le bloc graphique)
+    html = fig.to_html(full_html=False, include_plotlyjs="cdn")
+ 
+    return html
+
+# ======================================================
+
+# 5. VISU RETARDS > 10 MIN EN ROUGE (HTML)
+
+# ======================================================
+ 
+import datetime
+ 
+def html_retards_10min(production_chains: pd.DataFrame) -> str:
+
+    """
+
+    Retourne un tableau HTML avec toutes les lignes où
+
+    (Temps Réel - Temps Prévu) > 10 minutes.
+
+    Les valeurs sont affichées en rouge.
+
+    Retourne : string HTML
+
+    """
+ 
+    df = production_chains.copy()
+ 
+    # --- Converter datetime.time -> timedelta ---
+
+    def time_to_timedelta(x):
+
+        if isinstance(x, datetime.time):
+
+            return datetime.timedelta(
+
+                hours=x.hour,
+
+                minutes=x.minute,
+
+                seconds=x.second
+
+            )
+
+        else:
+
+            try:
+
+                return pd.to_timedelta(x, errors="coerce")
+
+            except:
+
+                return pd.NaT
+ 
+    # Conversion
+
+    df["Temps_Reel_td"] = df["Temps Réel"].apply(time_to_timedelta)
+
+    df["Temps_Prev_td"] = df["Temps Prévu"].apply(time_to_timedelta)
+ 
+    # Écart
+
+    df["Ecart"] = df["Temps_Reel_td"] - df["Temps_Prev_td"]
+
+    df["Ecart_min"] = df["Ecart"].dt.total_seconds() / 60
+ 
+    # Filtrer > 10 min
+
+    retards = df[df["Ecart_min"] > 10].copy()
+ 
+    if retards.empty:
+
+        return "<p>Aucun retard supérieur à 10 minutes.</p>"
+ 
+    # Colonnes utiles
+
+    cols = ["Poste", "Nom", "Temps Prévu", "Temps Réel", "Ecart_min", "Référence"]
+
+    cols = [c for c in cols if c in retards.columns]
+
+    retards = retards[cols]
+ 
+    # Tri par poste puis par retard
+
+    retards = (
+
+        retards
+
+        .sort_values(["Poste", "Ecart_min"], ascending=[True, False])
+
+        .reset_index(drop=True)
+
+    )
+ 
+    # Construction HTML manuelle (rouge)
+
+    html = """
+<h2 style="color:red;">Postes avec un retard supérieur à 10 minutes</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
+<tr style="background-color:#ffe5e5;font-weight:bold;text-align:center;">
+<td>Poste</td>
+<td>Opération</td>
+<td>Temps prévu</td>
+<td>Temps réel</td>
+<td>Écart (min)</td>
+<td>Références</td>
+</tr>
+
+    """
+ 
+    for _, row in retards.iterrows():
+
+        html += f"""
+<tr style="color:red;">
+<td><b>{row['Poste']}</b></td>
+<td>{row['Nom']}</td>
+<td>{row['Temps Prévu']}</td>
+<td>{row['Temps Réel']}</td>
+<td><b>{row['Ecart_min']:.1f}</b></td>
+<td>{row.get('Référence', '')}</td>
+</tr>
+
+        """
+ 
+    html += "</table>"
+ 
+    return html
+
+ 
