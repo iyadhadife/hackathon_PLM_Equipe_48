@@ -60,3 +60,36 @@ export const getFileUrl = (urlPath) => {
   if (urlPath.startsWith('http')) return urlPath;
   return `${BACKEND_URL}${urlPath}`;
 };
+
+/**
+ * Envoie une question au chatbot et retourne la réponse générée
+ * @param {string} question - La question posée par l'utilisateur
+ */
+export const sendChatMessage = async (question) => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question }),
+    });
+
+    if (response.ok) {
+      return await response.json();
+    } else {
+      let errorMessage = `Erreur ${response.status}`;
+      try {
+        const errData = await response.json();
+        if (errData && errData.error) errorMessage = errData.error;
+      } catch (e) {
+        // Ignorer si le JSON est malformé
+      }
+      throw new Error(errorMessage);
+    }
+  } catch (error) {
+    console.error("Erreur API sendChatMessage:", error);
+    throw error;
+  }
+};
+
