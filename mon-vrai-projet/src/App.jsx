@@ -249,6 +249,11 @@ body {
   box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4);
 }
 
+.primary-btn[style*="background-color: #e67e22"]:hover {
+  background-color: #d35400;
+  box-shadow: 0 4px 8px rgba(230, 126, 34, 0.4);
+}
+
 .primary-btn:active {
   transform: translateY(1px); /* Effet de clic */
   box-shadow: none;
@@ -590,6 +595,30 @@ export default function App() {
     }
   };
 
+  const afficherCostsParStep = async () => {
+    setLoading(true);
+
+    try {
+      const reponse = await fetch('http://localhost:5000/api/costs_by_step');
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Coûts par étape chargés' });
+        setSelectedFile(""); // Vider la sélection fichier
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Gérer l'upload en utilisant le service
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
@@ -676,7 +705,7 @@ export default function App() {
               {selectedFile ? selectedFile.name : 'Tableau de bord'}
             </h1>
             
-            {/* Menu Déroulant + Bouton Python */}
+            {/* Menu Déroulant + Boutons */}
             <div className="poste-selector">
               <select 
                 value={selectedPoste} 
@@ -707,6 +736,15 @@ export default function App() {
                 title="Affiche l'expérience par semaine et étape"
               >
                 {loading ? "Chargement..." : "Expérience Week/Step"}
+              </button>
+              <button 
+                onClick={afficherCostsParStep}
+                className="primary-btn"
+                disabled={loading}
+                style={{ backgroundColor: '#e67e22' }}
+                title="Affiche les coûts par étape"
+              >
+                {loading ? "Chargement..." : "Coûts par étape"}
               </button>
             </div>
           </div>

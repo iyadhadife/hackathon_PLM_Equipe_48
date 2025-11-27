@@ -108,6 +108,21 @@ def experience_week_step():
     except Exception as e:
         return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
 
+# --- ROUTE 7 : Coûts par étape ---
+@app.route('/api/costs_by_step', methods=['GET'])
+def costs_by_step():
+    try:
+        mes = pd.read_excel('uploads/MES_Extraction.xlsx')
+        plm = pd.read_excel('uploads/PLM_DataSet.xlsx')
+        erp = pd.read_excel('uploads/ERP_Equipes_Airplus.xlsx')
+        
+        # Générer le HTML avec les coûts par étape
+        html = html_costs_by_step(mes, plm, erp)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
+
 # --- ROUTE 2 : API pour lister les fichiers (GET /api/files) ---
 @app.route('/api/files', methods=['GET'])
 def list_files():
