@@ -3,6 +3,7 @@ import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X
 
 // --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
 import { fetchFilesFromApi, uploadFileToApi, getFileUrl } from './services/api.js';
+import Chatbot from './components/Chatbot.jsx';
 
 // Styles CSS intégrés pour garantir le fonctionnement en un seul fichier
 const cssStyles = `
@@ -372,66 +373,67 @@ body {
   color: #fff;
 }
 `;
-import { useState } from 'react';
+// import { useState } from 'react';
 
-export default function MonBouton() {
-  // Stocke le HTML reçu du Python
-  const [contenuHtml, setContenuHtml] = useState(null);
-  const [chargement, setChargement] = useState(false);
+// export default function MonBouton() {
+//   // Stocke le HTML reçu du Python
+//   const [contenuHtml, setContenuHtml] = useState(null);
+//   const [chargement, setChargement] = useState(false);
 
-  const appelBackend = async () => {
-    setChargement(true);
-    try {
-      // Remplacez l'URL par la vôtre
-      const reponse = await fetch('http://localhost:5000/api/poste_piece');
+//   const appelBackend = async () => {
+//     setChargement(true);
+//     try {
+//       // Remplacez l'URL par la vôtre
+//       const reponse = await fetch('http://localhost:5000/api/poste_piece');
       
-      if (!reponse.ok) {
-        throw new Error('Erreur réseau');
-      }
+//       if (!reponse.ok) {
+//         throw new Error('Erreur réseau');
+//       }
 
-      // 1. On récupère le texte brut (le HTML)
-      const htmlRecu = await reponse.text();
-      setContenuHtml(htmlRecu);
+//       // 1. On récupère le texte brut (le HTML)
+//       const htmlRecu = await reponse.text();
+//       setContenuHtml(htmlRecu);
 
-    } catch (erreur) {
-      console.error("Erreur:", erreur);
-      alert("Impossible de contacter le backend Python");
-    } finally {
-      setChargement(false);
-    }
-  };
+//     } catch (erreur) {
+//       console.error("Erreur:", erreur);
+//       alert("Impossible de contacter le backend Python");
+//     } finally {
+//       setChargement(false);
+//     }
+//   };
 
-  return (
-    <div style={{ padding: '20px' }}>
+//   return (
+//     <div style={{ padding: '20px' }}>
       
-      {/* LE BOUTON */}
-      <button 
-        onClick={appelBackend}
-        disabled={chargement}
-        style={{
-          padding: '10px 20px',
-          fontSize: '16px',
-          backgroundColor: '#007bff',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer'
-        }}
-      >
-        {chargement ? 'Chargement...' : 'Récupérer le HTML'}
-      </button>
+//       {/* LE BOUTON */}
+//       <button 
+//         onClick={appelBackend}
+//         disabled={chargement}
+//         style={{
+//           padding: '10px 20px',
+//           fontSize: '16px',
+//           backgroundColor: '#007bff',
+//           color: 'white',
+//           border: 'none',
+//           borderRadius: '5px',
+//           cursor: 'pointer'
+//         }}
+//       >
+//         {chargement ? 'Chargement...' : 'Récupérer le HTML'}
+//       </button>
 
-      {/* L'AFFICHAGE DU HTML */}
-      {contenuHtml && (
-        <div 
-          style={{ marginTop: '20px', border: '1px solid #ddd', padding: '15px' }}
-          // 2. C'est ici qu'on injecte le HTML brut
-          dangerouslySetInnerHTML={{ __html: contenuHtml }}
-        />
-      )}
-    </div>
-  );
-}
+//       {/* L'AFFICHAGE DU HTML */}
+//       {contenuHtml && (
+//         <div 
+//           style={{ marginTop: '20px', border: '1px solid #ddd', padding: '15px' }}
+//           // 2. C'est ici qu'on injecte le HTML brut
+//           dangerouslySetInnerHTML={{ __html: contenuHtml }}
+//         />
+//       )}
+//     </div>
+//   );
+// }
+
 export default function App() {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -442,6 +444,30 @@ export default function App() {
   useEffect(() => {
     loadFiles(); // Utilisation de la nouvelle fonction loadFiles
   }, []);
+
+  // Fonction pour appeler le backend Python
+  const votreFonctionAppelBackend = async () => {
+    setStatus({ type: 'loading', message: 'Appel au backend...' });
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/poste_piece');
+      
+      if (!response.ok) {
+        throw new Error('Erreur réseau');
+      }
+
+      const htmlContent = await response.text();
+      console.log('HTML reçu:', htmlContent);
+      
+      setStatus({ type: 'success', message: 'Succès !' });
+      // Vous pouvez ajouter du code ici pour afficher le HTML reçu
+      
+      setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+    } catch (error) {
+      console.error("Erreur:", error);
+      setStatus({ type: 'error', message: 'Impossible de contacter le backend' });
+    }
+  };
 
   // Fonction wrapper pour charger les fichiers via le service
   const loadFiles = async () => {
@@ -485,6 +511,9 @@ export default function App() {
     <div className="app-container">
       {/* Injection des styles CSS */}
       <style>{cssStyles}</style>
+
+      {/* Widget Chatbot */}
+      <Chatbot />
 
       {/* --- SIDEBAR --- */}
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
