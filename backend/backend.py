@@ -189,6 +189,9 @@ INSTRUCTIONS TECHNIQUES :
 - DataFrames dans 'dataframes' dictionnaire (clé = nom fichier)
 - Résultat final dans variable 'result' (string formatée)
 - Importe ce dont tu as besoin (datetime, timedelta, etc.)
+- UTILISE UNIQUEMENT DES GUILLEMETS DOUBLES (") pour les strings
+- Échappe les apostrophes : \\'  (ex: "l\\'équipe" au lieu de "l'équipe")
+- Pour f-strings, double les accolades : f"{{variable}}" → f"{{{{variable}}}}"
 
 EXEMPLES DE BON FORMATAGE :
 
@@ -256,13 +259,15 @@ GÉNÈRE MAINTENANT LE CODE (sans explications, juste le code) :
         generated_code = response.text.strip()
         
         # Nettoyer le code (retirer les balises markdown si présentes)
-        if generated_code.startswith('```python'):
-            generated_code = generated_code.split('```python')[1]
-        if generated_code.startswith('```'):
-            generated_code = generated_code.split('```')[1]
-        if generated_code.endswith('```'):
-            generated_code = generated_code.rsplit('```', 1)[0]
+        if '```python' in generated_code:
+            generated_code = generated_code.split('```python')[1].split('```')[0]
+        elif '```' in generated_code:
+            generated_code = generated_code.split('```')[1].split('```')[0]
         generated_code = generated_code.strip()
+        
+        # Nettoyer les caractères problématiques qui pourraient causer des erreurs
+        # (sans modifier la logique du code)
+        generated_code = generated_code.replace('\r\n', '\n').replace('\r', '\n')
         
         # 5. Préparer l'environnement d'exécution avec tous les imports nécessaires
         from datetime import datetime, timedelta
@@ -278,7 +283,48 @@ GÉNÈRE MAINTENANT LE CODE (sans explications, juste le code) :
             'result': None
         }
         
-        # 6. Exécuter le code généré
+        # 6. Vérifier la syntaxe du code avant exécution
+        try:
+            compile(generated_code, '<string>', 'exec')
+        except SyntaxError as syntax_err:
+            # Tenter de régénérer avec un prompt plus strict
+            safer_prompt = f"""Tu es un assistant qui génère du code Python VALIDE.
+
+DONNÉES DISPONIBLES :
+{format_dataframes_description(dataframes_info)}
+
+QUESTION : {user_question}
+
+RÈGLES CRITIQUES :
+1. Utilise UNIQUEMENT des guillemets doubles (") pour les strings
+2. Échappe les apostrophes avec \\'
+3. Pour les f-strings, double les accolades : {{{{variable}}}}
+4. Teste mentalement la syntaxe avant de répondre
+5. Variable finale obligatoire : result (string)
+
+CODE PYTHON (sans markdown, syntaxe PARFAITE) :
+"""
+            try:
+                retry_response = model.generate_content(safer_prompt)
+                generated_code = retry_response.text.strip()
+                
+                # Nettoyer à nouveau
+                if '```python' in generated_code:
+                    generated_code = generated_code.split('```python')[1].split('```')[0]
+                elif '```' in generated_code:
+                    generated_code = generated_code.split('```')[1].split('```')[0]
+                generated_code = generated_code.strip()
+                
+                # Re-vérifier
+                compile(generated_code, '<string>', 'exec')
+            except Exception as retry_err:
+                return jsonify({
+                    'answer': f"❌ Le code généré contient des erreurs de syntaxe :\n\n{str(syntax_err)}\n\nVeuillez reformuler votre question plus simplement.",
+                    'code': generated_code,
+                    'error': True
+                }), 200
+        
+        # 7. Exécuter le code généré
         try:
             exec(generated_code, exec_globals)
             result = exec_globals.get('result')
