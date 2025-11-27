@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download } from 'lucide-react';
 import Chatbot from './components/Chatbot.jsx';
 
 // --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
@@ -31,7 +31,7 @@ body {
 
 /* --- SIDEBAR --- */
 .sidebar {
-  width: 280px;
+  width: 380px;
   background-color: #ffffff;
   border-right: 1px solid #e9ecef;
   display: flex;
@@ -266,6 +266,8 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 260px;
+  word-break: break-all;
 }
 
 .file-size {
@@ -785,8 +787,7 @@ body {
   flex: 1;
   overflow: auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background-color: #f8f9fa;
   /* Pattern subtil */
   background-image: radial-gradient(#dee2e6 1px, transparent 1px);
@@ -1201,23 +1202,53 @@ export default function App() {
             files.map(file => (
               <div 
                 key={file.id}
-                onClick={() => {
-                  setSelectedFile(file);
-                  setContenuDiv("");
-                  // Si c'est un fichier .xlsx, charger et afficher le tableau
-                  if (file.name.endsWith('.xlsx')) {
-                    handleXlsxFileClick(file);
-                  }
-                }}
                 className={`file-item ${selectedFile?.id === file.id ? 'selected' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
               >
-                <div className="file-icon-wrapper">
-                  {file.type.includes('image') ? <ImageIcon size={18}/> : <FileText size={18}/>}
+                <div 
+                  onClick={() => {
+                    setSelectedFile(file);
+                    setContenuDiv("");
+                    // Si c'est un fichier .xlsx, charger et afficher le tableau
+                    if (file.name.endsWith('.xlsx')) {
+                      handleXlsxFileClick(file);
+                    }
+                  }}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                >
+                  <div className="file-icon-wrapper">
+                    {file.type.includes('image') ? <ImageIcon size={18}/> : <FileText size={18}/>}
+                  </div>
+                  <div className="file-info">
+                    <p className="file-name">{file.name}</p>
+                    <p className="file-size">{file.size}</p>
+                  </div>
                 </div>
-                <div className="file-info">
-                  <p className="file-name">{file.name}</p>
-                  <p className="file-size">{file.size}</p>
-                </div>
+                <a 
+                  href={getFileUrl(file.url)} 
+                  download={file.name}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    padding: '6px 10px',
+                    marginRight: '8px',
+                    backgroundColor: '#4c6ef5',
+                    color: 'white',
+                    borderRadius: '4px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textDecoration: 'none',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    transition: 'all 0.2s',
+                    hover: { backgroundColor: '#364ec5' }
+                  }}
+                  title="Télécharger le fichier"
+                >
+                  <Download size={14} />
+                </a>
               </div>
             ))
           )}
@@ -1378,10 +1409,10 @@ export default function App() {
                     <div 
                       style={{ 
                         width: '100%', 
+                        flex: 1,
                         backgroundColor: '#fff',
                         borderBottom: selectedFile ? '1px solid #eee' : 'none',
                         padding: '30px 20px 20px 20px',
-                        flexShrink: 0,
                         overflowY: 'auto',
                         marginTop: '12px'
                       }}
@@ -1391,8 +1422,8 @@ export default function App() {
                     </div>
                 )}
 
-                {/* --- 2. L'APERÇU DU FICHIER (S'affiche en dessous s'il est présent) --- */}
-                {selectedFile && (
+                {/* --- 2. L'APERÇU DU FICHIER (S'affiche seulement s'il n'y a pas de contenu HTML) --- */}
+                {selectedFile && !contenuDiv && (
                     <div style={{ flex: 1, padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                         {selectedFile.type.includes('image') ? (
                           <img 
