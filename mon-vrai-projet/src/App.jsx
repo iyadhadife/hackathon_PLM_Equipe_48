@@ -373,6 +373,7 @@ body {
   color: #fff;
 }
 `;
+
 // import { useState } from 'react';
 
 // export default function MonBouton() {
@@ -446,30 +447,6 @@ export default function App() {
   useEffect(() => {
     loadFiles(); // Utilisation de la nouvelle fonction loadFiles
   }, []);
-
-  // Fonction pour appeler le backend Python
-  const votreFonctionAppelBackend = async () => {
-    setStatus({ type: 'loading', message: 'Appel au backend...' });
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/poste_piece');
-      
-      if (!response.ok) {
-        throw new Error('Erreur réseau');
-      }
-
-      const htmlContent = await response.text();
-      console.log('HTML reçu:', htmlContent);
-      
-      setStatus({ type: 'success', message: 'Succès !' });
-      // Vous pouvez ajouter du code ici pour afficher le HTML reçu
-      
-      setTimeout(() => setStatus({ type: '', message: '' }), 3000);
-    } catch (error) {
-      console.error("Erreur:", error);
-      setStatus({ type: 'error', message: 'Impossible de contacter le backend' });
-    }
-  };
 
   // Fonction wrapper pour charger les fichiers via le service
   const loadFiles = async () => {
