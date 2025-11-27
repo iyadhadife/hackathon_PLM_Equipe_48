@@ -233,9 +233,50 @@ body {
   box-shadow: 0 4px 8px rgba(76, 110, 245, 0.4);
 }
 
+.primary-btn:disabled {
+  background-color: #adb5bd;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.primary-btn:disabled:hover {
+  background-color: #adb5bd;
+  box-shadow: none;
+}
+
 .primary-btn:active {
   transform: translateY(1px); /* Effet de clic */
   box-shadow: none;
+}
+
+.poste-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 15px;
+}
+
+.poste-dropdown {
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 250px;
+}
+
+.poste-dropdown:hover {
+  border-color: #4c6ef5;
+  background-color: #f8f9fa;
+}
+
+.poste-dropdown:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
 }
 
 /* PREVIEW AREA */
@@ -443,6 +484,34 @@ export default function App() {
   const fileInputRef = useRef(null);
   const [contenuDiv, setContenuDiv] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedPoste, setSelectedPoste] = useState("");
+
+  // Liste des postes disponibles
+  const postes = [
+    "Montage train atterissage",
+    "Assemblage moteur / fuselage / train atterissage",
+    "Assemblage visserie fuselage partie basse",
+    "Assemblage visserie train atterissage",
+    "Assemblage fuselage centrale",
+    "Assemblage queue avion",
+    "Assemblage cockpit",
+    "Assemblage aile gauche",
+    "Assemblage réacteurs",
+    "Fixation réacteur aile gauche",
+    "Assemblage train atterissage gauche",
+    "Fixation aile gauche avion / train atterissage",
+    "Assemblage aile droite",
+    "Fixation réacteur aile droite",
+    "Assemblage train atterissage droit",
+    "Fixation aile droit avion / train atterissage",
+    "Fixation bout ailes",
+    "Passage faisceaux électrique ailes",
+    "Fixation lumières bout ailes",
+    "Stickers cockpit",
+    "Stickers réacteur",
+    "Stickers fuselage gauche",
+    "Stickers fuselage droit"
+  ];
 
   useEffect(() => {
     loadFiles(); // Utilisation de la nouvelle fonction loadFiles
@@ -460,13 +529,17 @@ export default function App() {
   };
 
   const votreFonctionAppelBackend = async () => {
-    // Optionnel : état de chargement
-    setLoading(true); 
+    // Vérifier qu'un poste est sélectionné
+    if (!selectedPoste) {
+      setStatus({ type: 'error', message: 'Veuillez sélectionner un poste' });
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      // En GET, on appelle juste l'URL directement
-      // Si vous devez passer un ID, ça se fait dans l'URL (ex: .../api/poste_piece?id=12)
-      const reponse = await fetch('http://localhost:5000/api/poste_piece');
+      // Appel avec le poste en paramètre GET
+      const reponse = await fetch(`http://localhost:5000/api/poste_piece?poste=${encodeURIComponent(selectedPoste)}`);
       
       if (reponse.ok) {
         // On récupère le texte (HTML)
@@ -474,12 +547,15 @@ export default function App() {
         
         // On met à jour la variable qui est liée à votre DIV existant
         setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Données chargées avec succès' });
       } else {
-        console.error("Erreur serveur");
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
 
     } catch (err) {
       console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
     } finally {
       setLoading(false);
     }
@@ -519,7 +595,7 @@ export default function App() {
 
       {/* Widget Chatbot */}
       <Chatbot />
-      
+
       {/* --- SIDEBAR --- */}
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
@@ -571,17 +647,29 @@ export default function App() {
               {selectedFile ? selectedFile.name : 'Tableau de bord'}
             </h1>
             
-            {/* Bouton Python */}
-            <div style={{ marginLeft: '15px' }}>
-                <button 
-                  onClick={() => {
-                    votreFonctionAppelBackend();
-                    setSelectedFile("");
-                  }} 
-                  className="primary-btn"
-                >
-                  Poste par pièces
-                </button>
+            {/* Menu Déroulant + Bouton Python */}
+            <div className="poste-selector">
+              <select 
+                value={selectedPoste} 
+                onChange={(e) => setSelectedPoste(e.target.value)}
+                className="poste-dropdown"
+              >
+                <option value="">-- Sélectionner un poste --</option>
+                {postes.map((poste, index) => (
+                  <option key={index} value={poste}>{poste}</option>
+                ))}
+              </select>
+              <button 
+                onClick={() => {
+                  votreFonctionAppelBackend();
+                  setSelectedFile("");
+                }} 
+                className="primary-btn"
+                disabled={loading || !selectedPoste}
+                title={!selectedPoste ? "Veuillez sélectionner un poste" : ""}
+              >
+                {loading ? "Chargement..." : "Poste par pièces"}
+              </button>
             </div>
           </div>
 

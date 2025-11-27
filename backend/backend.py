@@ -50,10 +50,43 @@ def serve():
 
 @app.route('/api/poste_piece', methods=['GET'])
 def poste_piece():
-    df = build_production_chains('uploads/MES_Extraction.xlsx', 
-                                 'uploads/PLM_DataSet.xlsx', 
-                                 'uploads/ERP_Equipes_Airplus.xlsx')
-    return html_poste_pieces(df,1)
+    postes = [
+  "Montage train atterissage",
+  "Assemblage moteur / fuselage / train atterissage",
+  "Assemblage visserie fuselage partie basse",
+  "Assemblage visserie train atterissage",
+  "Assemblage fuselage centrale",
+  "Assemblage queue avion",
+  "Assemblage cockpit",
+  "Assemblage aile gauche",
+  "Assemblage réacteurs",
+  "Fixation réacteur aile gauche",
+  "Assemblage train atterissage gauche",
+  "Fixation aile gauche avion / train atterissage",
+  "Assemblage aile droite",
+  "Fixation réacteur aile droite",
+  "Assemblage train atterissage droit",
+  "Fixation aile droit avion / train atterissage",
+  "Fixation bout ailes",
+  "Passage faisceaux électrique ailes",
+  "Fixation lumières bout ailes",
+  "Stickers cockpit",
+  "Stickers réacteur",
+  "Stickers fuselage gauche",
+  "Stickers fuselage droit"
+    ]
+    
+    # Récupérer le poste depuis les paramètres GET
+    selected_poste = request.args.get('poste', None)
+    
+    # Si aucun poste n'est spécifié, retourner une erreur
+    if not selected_poste or selected_poste not in postes:
+        return jsonify({'error': 'Poste invalide ou non spécifié'}), 400
+    
+    mes = pd.read_excel('uploads/MES_Extraction.xlsx')
+    plm = pd.read_excel('uploads/PLM_DataSet.xlsx')
+    erp = pd.read_excel('uploads/ERP_Equipes_Airplus.xlsx')
+    return html_step_details(mes,plm,erp,selected_poste)
 
 # --- ROUTE 2 : API pour lister les fichiers (GET /api/files) ---
 @app.route('/api/files', methods=['GET'])
