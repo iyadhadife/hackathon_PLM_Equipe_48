@@ -729,3 +729,145 @@ def html_step_details(mes: pd.DataFrame,
     """
 
     return html
+
+ 
+def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
+    """
+    Retourne un tableau HTML :
+    Semaine | Étape de production | Expert | Confirmé | Débutant | Total_personnes
+ 
+    - Une personne n'est comptée qu'une seule fois par (Semaine, Étape, Niveau d'expérience)
+    - Chaque ligne est colorée :
+        * Vert  si >= 1/3 des personnes sont 'Expert'
+        * Rouge sinon
+    """
+ 
+    # 1) Colonne d'étape de production
+    if "Nom" in production_chains.columns:
+        step_col = "Nom"
+    elif "Nom_operation" in production_chains.columns:
+        step_col = "Nom_operation"
+    else:
+        return "<p>Impossible de trouver la colonne 'Nom' (ou 'Nom_operation') dans production_chains.</p>"
+ 
+    # 2) Vérifier les colonnes nécessaires
+    required_cols = ["Semaine", step_col, "Nom_personne", "Niveau d'expérience"]
+    missing = [c for c in required_cols if c not in production_chains.columns]
+    if missing:
+        return f"<p>Colonnes manquantes dans production_chains : {missing}</p>"
+ 
+    # 3) Sous-dataframe propre
+    df_exp = (
+        production_chains[required_cols]
+        .dropna(subset=["Semaine", step_col, "Nom_personne", "Niveau d'expérience"])
+        .copy()
+    )
+ 
+    df_exp["Semaine"] = pd.to_numeric(df_exp["Semaine"], errors="coerce")
+    df_exp = df_exp.dropna(subset=["Semaine"])
+    df_exp["Semaine"] = df_exp["Semaine"].astype(int)
+ 
+    df_exp[step_col] = df_exp[step_col].astype(str).str.strip()
+    df_exp["Nom_personne"] = df_exp["Nom_personne"].astype(str).str.strip()
+    df_exp["Niveau d'expérience"] = df_exp["Niveau d'expérience"].astype(str).str.strip()
+ 
+    if df_exp.empty:
+        return "<p>Aucune donnée exploitable pour semaines / étapes / niveaux d'expérience.</p>"
+ 
+    # 4) Comptage des PERSONNES DISTINCTES par (Semaine, Étape, Niveau d'expérience)
+    group = (
+        df_exp
+        .groupby(["Semaine", step_col, "Niveau d'expérience"])["Nom_personne"]
+        .nunique()
+        .reset_index(name="Nb_personnes")
+    )
+ 
+    if group.empty:
+        return "<p>Aucune donnée agrégée (groupby vide).</p>"
+ 
+    # 5) Pivot : une ligne = (Semaine, Étape), colonnes = niveaux d'expérience
+    pivot = (
+        group
+        .pivot(index=["Semaine", step_col],
+               columns="Niveau d'expérience",
+               values="Nb_personnes")
+        .fillna(0)
+        .astype(int)
+    )
+ 
+    # Ordonner les colonnes de niveaux
+    ordre_niveaux = ["Expert", "Confirmé", "Débutant"]
+    cols_finales = [c for c in ordre_niveaux if c in pivot.columns]
+    cols_autres = [c for c in pivot.columns if c not in cols_finales]
+    pivot = pivot[cols_finales + cols_autres]
+ 
+    # 6) Total par (Semaine, Étape)
+    pivot["Total_personnes"] = pivot.sum(axis=1)
+ 
+    # 7) Flatten index
+    result = pivot.reset_index().sort_values(["Semaine", step_col])
+    result = result.rename(columns={step_col: "Etape_de_production"})
+ 
+    if result.empty:
+        return "<p>Aucune donnée à afficher après agrégation.</p>"
+ 
+    # ===============================
+    # 8) Construction du HTML :
+    #    - pas de colonne d'index
+    #    - Semaine affichée une seule fois (rowspan)
+    #    - lignes en vert/rouge selon % d'experts
+    # ===============================
+ 
+    html = """
+<h3>Nombre de personnes par Semaine, Étape de production et niveau d'expérience</h3>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
+<tr style="background-color:#f2f2f2;font-weight:bold;text-align:center;">
+<td>Semaine</td>
+<td>Étape de production</td>
+<td>Expert</td>
+<td>Confirmé</td>
+<td>Débutant</td>
+<td>Total_personnes</td>
+</tr>
+"""
+ 
+    for semaine, df_sem in result.groupby("Semaine"):
+        df_sem = df_sem.sort_values("Etape_de_production")
+        rowspan = len(df_sem)
+        first_row = True
+ 
+        for _, row in df_sem.iterrows():
+            expert = int(row["Expert"]) if "Expert" in result.columns else 0
+            confirme = int(row["Confirmé"]) if "Confirmé" in result.columns else 0
+            debutant = int(row["Débutant"]) if "Débutant" in result.columns else 0
+            total = int(row["Total_personnes"])
+ 
+            # Couleur de la ligne
+            if total > 0 and expert >= total / 3:
+                bgcolor = "background-color:#c6f7c3;"   # vert clair
+            else:
+                bgcolor = "background-color:#f7c3c3;"   # rouge clair
+ 
+            html += f"<tr style='{bgcolor}'>"
+ 
+            # Semaine affichée une seule fois
+            if first_row:
+                html += (
+                    f"<td rowspan='{rowspan}' "
+                    f"style='font-weight:bold;vertical-align:top;'>{semaine}</td>"
+                )
+                first_row = False
+ 
+            html += f"<td>{row['Etape_de_production']}</td>"
+            html += f"<td style='text-align:right;'>{expert}</td>"
+            html += f"<td style='text-align:right;'>{confirme}</td>"
+            html += f"<td style='text-align:right;'>{debutant}</td>"
+            html += f"<td style='text-align:right;font-weight:bold;'>{total}</td>"
+ 
+            html += "</tr>"
+ 
+    html += "</table>"
+ 
+    return html
+
+

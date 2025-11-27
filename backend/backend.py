@@ -88,6 +88,26 @@ def poste_piece():
     erp = pd.read_excel('uploads/ERP_Equipes_Airplus.xlsx')
     return html_step_details(mes,plm,erp,selected_poste)
 
+# --- ROUTE 6 : Expérience par semaine et étape ---
+@app.route('/api/experience_week_step', methods=['GET'])
+def experience_week_step():
+    try:
+        mes = pd.read_excel('uploads/MES_Extraction.xlsx')
+        plm = pd.read_excel('uploads/PLM_DataSet.xlsx')
+        erp = pd.read_excel('uploads/ERP_Equipes_Airplus.xlsx')
+        
+        # Construire les chaînes de production
+        production_chains = build_production_chains('uploads/MES_Extraction.xlsx',
+                                                     'uploads/PLM_DataSet.xlsx',
+                                                     'uploads/ERP_Equipes_Airplus.xlsx')
+        
+        # Générer le HTML avec expérience par semaine et étape
+        html = html_experience_by_week_step(production_chains)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
+
 # --- ROUTE 2 : API pour lister les fichiers (GET /api/files) ---
 @app.route('/api/files', methods=['GET'])
 def list_files():
