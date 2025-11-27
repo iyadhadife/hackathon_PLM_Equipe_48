@@ -60,3 +60,4 @@ export const getFileUrl = (urlPath) => {
   if (urlPath.startsWith('http')) return urlPath;
   return `${BACKEND_URL}${urlPath}`;
 };
+

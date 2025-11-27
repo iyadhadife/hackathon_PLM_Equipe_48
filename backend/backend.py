@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from scripts import *
 
 # On définit le dossier statique sur 'dist' (le build de Vite)
 app = Flask(__name__, static_folder='dist', static_url_path='')
@@ -31,6 +32,10 @@ def serve():
         return send_from_directory(app.static_folder, 'index.html')
     else:
         return "Le dossier 'dist' n'existe pas. Veuillez exécuter 'npm run build' dans votre projet React.", 404
+
+@app.route('/button/poste_pieces', methods=['GET'])
+def poste_pieces():
+    return None
 
 # --- ROUTE 2 : API pour lister les fichiers (GET /api/files) ---
 @app.route('/api/files', methods=['GET'])
@@ -86,6 +91,14 @@ def uploaded_file(filename):
     # Sert le fichier depuis le dossier 'uploads'
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+@app.route('/api/poste_piece', methods=['GET'])
+def poste_piece():
+    df = build_production_chains('uploads/MES_Extraction.xlsx', 
+                                 'uploads/PLM_DataSet.xlsx', 
+                                 'uploads/ERP_Equipes_Airplus.xlsx')
+    return html_poste_pieces(df)
+
 if __name__ == '__main__':
     # Lance le serveur sur le port 5000, qui est la cible de l'API
     app.run(debug=True, port=5000)
+

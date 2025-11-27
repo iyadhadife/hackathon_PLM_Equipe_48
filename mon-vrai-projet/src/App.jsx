@@ -372,7 +372,66 @@ body {
   color: #fff;
 }
 `;
+import { useState } from 'react';
 
+export default function MonBouton() {
+  // Stocke le HTML reçu du Python
+  const [contenuHtml, setContenuHtml] = useState(null);
+  const [chargement, setChargement] = useState(false);
+
+  const appelBackend = async () => {
+    setChargement(true);
+    try {
+      // Remplacez l'URL par la vôtre
+      const reponse = await fetch('http://localhost:5000/api/poste_piece');
+      
+      if (!reponse.ok) {
+        throw new Error('Erreur réseau');
+      }
+
+      // 1. On récupère le texte brut (le HTML)
+      const htmlRecu = await reponse.text();
+      setContenuHtml(htmlRecu);
+
+    } catch (erreur) {
+      console.error("Erreur:", erreur);
+      alert("Impossible de contacter le backend Python");
+    } finally {
+      setChargement(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      
+      {/* LE BOUTON */}
+      <button 
+        onClick={appelBackend}
+        disabled={chargement}
+        style={{
+          padding: '10px 20px',
+          fontSize: '16px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'pointer'
+        }}
+      >
+        {chargement ? 'Chargement...' : 'Récupérer le HTML'}
+      </button>
+
+      {/* L'AFFICHAGE DU HTML */}
+      {contenuHtml && (
+        <div 
+          style={{ marginTop: '20px', border: '1px solid #ddd', padding: '15px' }}
+          // 2. C'est ici qu'on injecte le HTML brut
+          dangerouslySetInnerHTML={{ __html: contenuHtml }}
+        />
+      )}
+    </div>
+  );
+}
 export default function App() {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -394,7 +453,6 @@ export default function App() {
       setStatus({ type: 'error', message: error.message || "Impossible de charger les fichiers." });
     }
   };
-
 
   // Gérer l'upload en utilisant le service
   const handleFileChange = async (event) => {
@@ -422,7 +480,6 @@ export default function App() {
     
     event.target.value = null;
   };
-
 
   return (
     <div className="app-container">
@@ -500,6 +557,34 @@ export default function App() {
               <span>Importer</span>
             </button>
           </div>
+          <div className="header-left">
+    <button 
+      onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      className="icon-btn"
+    >
+      <Menu size={20}/>
+    </button>
+    <h1 className="page-title">
+      {selectedFile ? selectedFile.name : 'Tableau de bord'}
+    </h1>
+  </div>
+  <div className="header-right">
+    {/* --- DÉBUT : VOTRE NOUVELLE ZONE DE BOUTONS --- */}
+    <div className="action-buttons-group" style={{ display: 'flex', gap: '10px', marginRight: '15px' }}>
+        
+        {/* Exemple de bouton connecté à votre backend Python */}
+        <button 
+            onClick={votreFonctionAppelBackend} 
+            className="secondary-btn" // Assurez-vous d'avoir du CSS pour cette classe ou utilisez style={{...}}
+        >
+            Action Python
+        </button>
+
+        {/* Vous pourrez ajouter d'autres boutons ici plus tard */}
+        {/* <button>Autre Action</button> */}
+
+    </div>
+  </div>
         </header>
 
         {/* ZONE DE PRÉVISUALISATION */}
