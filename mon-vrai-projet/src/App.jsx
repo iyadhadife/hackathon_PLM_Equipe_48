@@ -1126,6 +1126,32 @@ export default function App() {
     }
   };
 
+  const handleXlsxFileClick = async (file) => {
+    setLoading(true);
+
+    try {
+      // Extraire le nom du fichier du chemin complet
+      const filename = file.name || file.url.split('/').pop();
+      
+      const reponse = await fetch(`http://localhost:5000/api/excel_table/${encodeURIComponent(filename)}`);
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: `Tableau ${filename} chargé` });
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur lors du chargement du fichier' });
+      }
+
+    } catch (err) {
+      console.error("Erreur lors du chargement du fichier Excel", err);
+      setStatus({ type: 'error', message: 'Erreur lors du chargement du fichier Excel' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Gérer l'upload en utilisant le service
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
@@ -1178,6 +1204,10 @@ export default function App() {
                 onClick={() => {
                   setSelectedFile(file);
                   setContenuDiv("");
+                  // Si c'est un fichier .xlsx, charger et afficher le tableau
+                  if (file.name.endsWith('.xlsx')) {
+                    handleXlsxFileClick(file);
+                  }
                 }}
                 className={`file-item ${selectedFile?.id === file.id ? 'selected' : ''}`}
               >
@@ -1299,6 +1329,31 @@ export default function App() {
           {(selectedFile || contenuDiv) ? (
             <div className="preview-card">
               
+              {/* BANNIÈRE RÉSULTAT DE L'ACTION (EN HAUT DU CONTENEUR) */}
+              {contenuDiv && (
+                <div 
+                  style={{ 
+                    width: '100%', 
+                    backgroundColor: '#e7f5ff',
+                    borderBottom: '3px solid #4c6ef5',
+                    padding: '18px 20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <h3 style={{ margin: 0, color: '#1971c2', fontSize: '1.1rem', fontWeight: 700 }}>
+                    📊 Résultat de l'action
+                  </h3>
+                  <button 
+                    onClick={() => setContenuDiv("")} 
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666', padding: '4px 8px', hover: { color: '#000' } }}
+                  >
+                    ✖
+                  </button>
+                </div>
+              )}
+              
               {/* EN-TÊTE de la Carte */}
               <div className="preview-card-header">
                   {selectedFile ? (
@@ -1306,36 +1361,31 @@ export default function App() {
                         <span>ID: {selectedFile.id}</span>
                         <span className="file-type-badge">{selectedFile.type}</span>
                     </>
+                  ) : contenuDiv ? (
+                    // Si on a du contenu Python mais pas de fichier, ne rien afficher ici
+                    null
                   ) : (
-                    // Titre générique si seul le résultat Python est affiché
-                    <span>Résultat de l'action</span>
+                    // Cas par défaut
+                    <span>Aperçu</span>
                   )}
               </div>
               
               {/* CORPS : Utilise flex-column pour empiler les éléments */}
               <div className="preview-card-body" style={{ flexDirection: 'column', display: 'flex' }}>
                 
-                {/* --- 1. LE RÉSULTAT PYTHON (Toujours en haut s'il est présent) --- */}
+                {/* --- 1. LE CONTENU HTML DU RÉSULTAT PYTHON --- */}
                 {contenuDiv && (
                     <div 
-                      className="python-result-box"
                       style={{ 
                         width: '100%', 
                         backgroundColor: '#fff',
                         borderBottom: selectedFile ? '1px solid #eee' : 'none',
-                        padding: '20px',
-                        flexShrink: 0
+                        padding: '30px 20px 20px 20px',
+                        flexShrink: 0,
+                        overflowY: 'auto',
+                        marginTop: '12px'
                       }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                            <h3 style={{ margin: 0, color: '#007bff', fontSize: '1rem' }}>Réponse du Backend</h3>
-                            <button 
-                                onClick={() => setContenuDiv("")} 
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#999' }}
-                            >
-                                ✖
-                            </button>
-                        </div>
                         {/* Injection du HTML */}
                         <div dangerouslySetInnerHTML={{ __html: contenuDiv }} />
                     </div>

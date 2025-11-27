@@ -491,6 +491,82 @@ def retards_10min():
     except Exception as e:
         return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
 
+# --- ROUTE 10 : Afficher un fichier Excel en tant que tableau HTML ---
+@app.route('/api/excel_table/<filename>', methods=['GET'])
+def excel_table(filename):
+    try:
+        # Sécuriser le nom de fichier
+        filename = secure_filename(filename)
+        
+        # Vérifier que le fichier existe et est un .xlsx
+        if not filename.endswith('.xlsx'):
+            return jsonify({'error': 'Seuls les fichiers .xlsx sont supportés'}), 400
+        
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'Fichier non trouvé'}), 404
+        
+        # Charger le fichier Excel
+        df = pd.read_excel(filepath)
+        
+        # Limiter à 1000 lignes pour éviter les problèmes de performance
+        df = df.head(1000)
+        
+        # Convertir en HTML tableau avec style
+        html_table = df.to_html(classes='excel-table', border=0, index=False)
+        
+        # Ajouter du CSS pour styliser le tableau
+        html_content = f"""
+        <style>
+            .excel-table {{
+                width: 100%;
+                border-collapse: collapse;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                font-size: 13px;
+            }}
+            .excel-table th {{
+                background-color: #4c6ef5;
+                color: white;
+                padding: 12px;
+                text-align: left;
+                font-weight: 600;
+                border: 1px solid #dee2e6;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }}
+            .excel-table td {{
+                padding: 10px 12px;
+                border: 1px solid #dee2e6;
+                text-align: left;
+            }}
+            .excel-table tbody tr:nth-child(odd) {{
+                background-color: #f8f9fa;
+            }}
+            .excel-table tbody tr:hover {{
+                background-color: #e7f5ff;
+            }}
+            .table-info {{
+                margin-bottom: 20px;
+                padding: 12px 16px;
+                background-color: #e7f5ff;
+                border-left: 4px solid #4c6ef5;
+                border-radius: 4px;
+                font-size: 13px;
+            }}
+        </style>
+        <div class="table-info">
+            <strong>📊 {filename}</strong> | Lignes: {len(df)} | Colonnes: {len(df.columns)}
+        </div>
+        {html_table}
+        """
+        
+        return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement du fichier : {str(e)}'}), 500
+
 # @app.route('/api/poste_piece', methods=['GET'])
 # def poste_piece():
 #     df = build_production_chains('uploads/MES_Extraction.xlsx', 

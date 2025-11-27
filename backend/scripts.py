@@ -309,6 +309,10 @@ def html_retards_10min(production_chains: pd.DataFrame) -> str:
     """
  
     df = production_chains.copy()
+
+    # Vérifier que les colonnes requises existent
+    if "Temps Prévu" not in df.columns or "Temps Réel" not in df.columns:
+        return f"<p><b>Erreur :</b> Les colonnes 'Temps Prévu' ou 'Temps Réel' sont manquantes. Colonnes disponibles : {df.columns.tolist()}</p>"
  
     # --- Converter datetime.time -> timedelta ---
     def time_to_timedelta(x):
@@ -731,7 +735,6 @@ def html_step_details(mes: pd.DataFrame,
 
     return html
 
-
 # ======================================================
 # 6. COÛTS PAR ÉTAPE (HTML)
 # ======================================================
@@ -740,81 +743,124 @@ def html_costs_by_step(mes: pd.DataFrame,
                        plm: pd.DataFrame,
                        erp: pd.DataFrame) -> str:
     """
-    Génère un HTML contenant l'analyse des coûts par étape :
-    - Coût des pièces par étape
-    - Coût de main-d'œuvre par étape
-    - Coût total par étape
-    - Graphique Plotly avec les coûts
-    
+    Calcule les coûts par étape de production et renvoie un HTML contenant :
+      - un tableau récapitulatif par étape
+      - un camembert de répartition du coût TOTAL par étape
+ 
     Inputs
     ------
     mes : DataFrame (MES_Extraction)
+        Colonnes attendues (noms à adapter si besoin) :
+        - 'Nom' ou 'Nom_operation' : étape de production
+        - 'Référence' : références pièces (séparées par ';')
+        - 'Temps Prévu' : durée prévue (datetime.time ou 'HH:MM:SS')
+        - 'Poste' : numéro de poste
+ 
     plm : DataFrame (PLM_DataSet)
+        Colonnes :
+        - 'Code / Référence' : code pièce
+        - 'Coût achat pièce (€)' : coût d'achat de la pièce
+ 
     erp : DataFrame (ERP_Equipes Airplus)
-    
+        Colonnes :
+        - 'Rotation' : ex "Semaine 1: Poste 55 | Semaine 3: Poste 50"
+        - 'Prénom', 'Nom' : nom de l'employé
+        - 'Coût horaire' (ou similaire) : taux horaire de l'employé
+ 
     Retour
     ------
     html : str
-        Bloc HTML complet avec tableau et graphiques
+        HTML combinant tableau + camembert de répartition des coûts totaux.
     """
-    
-    # =========================
-    # 0) Colonne étape dans MES
-    # =========================
+ 
+    # ======================================================
+    # 1) Colonne étape de production
+    # ======================================================
     if "Nom" in mes.columns:
         step_col = "Nom"
     elif "Nom_operation" in mes.columns:
         step_col = "Nom_operation"
     else:
-        return "<p><b>Impossible de trouver 'Nom' ou 'Nom_operation' dans MES.</b></p>"
-    
-    # =========================
-    # Utilitaire temps
-    # =========================
-    def time_to_td(x):
+        return "<p>Impossible de trouver la colonne 'Nom' (ou 'Nom_operation') dans MES.</p>"
+ 
+    # ======================================================
+    # 2) PARTIE PIECES (matière) : MES + PLM
+    # ======================================================
+ 
+    mes_long = mes.copy()
+    mes_long["Code_piece"] = mes_long["Référence"].astype(str).str.split(";")
+    mes_long = mes_long.explode("Code_piece")
+    mes_long["Code_piece"] = mes_long["Code_piece"].str.strip()
+    mes_long = mes_long[mes_long["Code_piece"] != ""]
+ 
+    plm_renamed = plm.rename(columns={"Code / Référence": "Code_piece"})
+    cols_plm_needed = ["Code_piece", "Coût achat pièce (€)"]
+    cols_plm_needed = [c for c in cols_plm_needed if c in plm_renamed.columns]
+ 
+    mes_plm_cost = mes_long.merge(
+        plm_renamed[cols_plm_needed],
+        on="Code_piece",
+        how="left"
+    )
+ 
+    # Coût pièce en numérique
+    if "Coût achat pièce (€)" in mes_plm_cost.columns:
+        mes_plm_cost["Coût achat pièce (€)"] = (
+            mes_plm_cost["Coût achat pièce (€)"]
+            .astype(str)
+            .str.replace(",", ".", regex=False)
+        )
+        mes_plm_cost["Coût achat pièce (€)"] = pd.to_numeric(
+            mes_plm_cost["Coût achat pièce (€)"], errors="coerce"
+        )
+    else:
+        mes_plm_cost["Coût achat pièce (€)"] = np.nan
+ 
+    # Coût pièces par étape (somme de tous les coûts – doublons conservés)
+    cost_pieces_by_step = (
+        mes_plm_cost
+        .groupby(step_col)["Coût achat pièce (€)"]
+        .sum()
+        .reset_index()
+        .rename(columns={"Coût achat pièce (€)": "Cout_pieces"})
+    )
+ 
+    # Nombre de pièces (occurrences) par étape
+    nb_pieces_by_step = (
+        mes_plm_cost
+        .groupby(step_col)["Code_piece"]
+        .size()
+        .reset_index(name="Nb_pieces")
+    )
+ 
+    # ======================================================
+    # 3) TEMPS PREVU cumulé par étape (MES)
+    # ======================================================
+ 
+    def time_to_timedelta(x):
+        # gère les datetime.time et les strings HH:MM:SS
         if isinstance(x, datetime.time):
             return datetime.timedelta(hours=x.hour, minutes=x.minute, seconds=x.second)
         try:
             return pd.to_timedelta(x, errors="coerce")
         except Exception:
             return pd.NaT
-    
-    # ======================================================
-    # 1) PIÈCES & COÛT PIÈCES PAR ÉTAPE
-    # ======================================================
-    mes_long = mes.copy()
-    mes_long["Code_piece"] = mes_long["Référence"].astype(str).str.split(";")
-    mes_long = mes_long.explode("Code_piece")
-    mes_long["Code_piece"] = mes_long["Code_piece"].str.strip()
-    mes_long = mes_long[mes_long["Code_piece"] != ""]
-    
-    plm_renamed = plm.rename(columns={"Code / Référence": "Code_piece"})
-    cols_plm = [c for c in ["Code_piece", "Coût achat pièce (€)"] if c in plm_renamed.columns]
-    mes_plm = mes_long.merge(plm_renamed[cols_plm], on="Code_piece", how="left")
-    
-    if "Coût achat pièce (€)" in mes_plm.columns:
-        mes_plm["_Cout_piece_num"] = (
-            mes_plm["Coût achat pièce (€)"]
-            .astype(str)
-            .str.replace(",", ".", regex=False)
-        )
-        mes_plm["_Cout_piece_num"] = pd.to_numeric(
-            mes_plm["_Cout_piece_num"], errors="coerce"
-        )
-    else:
-        mes_plm["_Cout_piece_num"] = 0.0
-    
-    # Coût par étape (pièces)
-    cout_pieces_by_step = (
-        mes_plm.groupby(step_col)["_Cout_piece_num"]
+ 
+    mes_time = mes[[step_col, "Temps Prévu"]].copy()
+    mes_time["Temps_Prevu_td"] = mes_time["Temps Prévu"].apply(time_to_timedelta)
+ 
+    time_by_step = (
+        mes_time
+        .groupby(step_col)["Temps_Prevu_td"]
         .sum()
-        .reset_index(name="Cout_Pieces")
+        .reset_index()
     )
-    
+    time_by_step["Temps_prevu_heures"] = time_by_step["Temps_Prevu_td"].dt.total_seconds() / 3600
+
+    # 4) MAIN-D'ŒUVRE : MES + ERP (via Poste & Coût horaire)
     # ======================================================
-    # 2) COÛT MAIN-D'OEUVRE PAR ÉTAPE
-    # ======================================================
-    # Parse Rotation -> (Semaine, Poste)
+ 
+    # 4.1 Parse de "Rotation" dans ERP -> (Semaine, Poste)
     pattern = re.compile(r"Semaine\s*(\d+)\s*:\s*Poste\s*(\d+)", flags=re.I)
     rotation_rows = []
     for _, row in erp.iterrows():
@@ -826,190 +872,194 @@ def html_costs_by_step(mes: pd.DataFrame,
             rec["Semaine"] = int(semaine)
             rec["Poste"] = int(poste)
             rotation_rows.append(rec)
-    
+ 
     erp_long = pd.DataFrame(rotation_rows)
-    
-    if not erp_long.empty:
-        # Nom complet
-        if {"Prénom", "Nom"}.issubset(erp_long.columns):
-            erp_long["Nom_personne"] = (
-                erp_long["Prénom"].fillna("").astype(str).str.strip()
-                + " "
-                + erp_long["Nom"].fillna("").astype(str).str.strip()
-            ).str.strip()
-        else:
-            erp_long["Nom_personne"] = np.nan
-        
-        # Coût horaire
-        hour_cols = [c for c in erp_long.columns if "horaire" in c.lower()]
-        hour_col = hour_cols[0] if hour_cols else None
+    if erp_long.empty:
+        # si on n'arrive pas à parser, on retournera des coûts main-d'œuvre à 0
+        erp_long["Poste"] = []
+        erp_long["Nom_personne"] = []
+        erp_long["Coût horaire"] = []
+ 
+    # Colonne coût horaire (on suppose "Coût horaire" dans ERP)
+    hour_cols_erp = [c for c in erp_long.columns if "horaire" in c.lower()]
+    hour_col = hour_cols_erp[0] if hour_cols_erp else None
+ 
+    # Nom de la personne
+    if {"Prénom", "Nom"}.issubset(erp_long.columns):
+        erp_long["Nom_personne"] = (
+            erp_long["Prénom"].fillna("").astype(str).str.strip()
+            + " "
+            + erp_long["Nom"].fillna("").astype(str).str.strip()
+        ).str.strip()
     else:
-        hour_col = None
-    
-    # Merge MES avec ERP pour obtenir coûts par étape
-    mes_step = mes.copy()
-    mes_step["Poste"] = pd.to_numeric(mes_step["Poste"], errors="coerce").astype("Int64")
-    
-    if not erp_long.empty:
-        erp_long["Poste"] = pd.to_numeric(erp_long["Poste"], errors="coerce").astype("Int64")
-        merge_cols = ["Poste", "Nom_personne"]
-        if hour_col:
-            merge_cols.append(hour_col)
-        
-        mes_emp = mes_step.merge(
-            erp_long[merge_cols],
-            on="Poste",
-            how="left",
-            suffixes=("", "_ERP"),
-        )
-    else:
-        mes_emp = mes_step.copy()
-        hour_col = None
-    
-    # Calcul coût MO par étape
-    cout_mo_by_step = []
-    
-    if hour_col is not None and "Nom_personne" in mes_emp.columns and "Temps Prévu" in mes_emp.columns:
+        erp_long["Nom_personne"] = np.nan
+ 
+    # 4.2 Join MES + ERP_long sur Poste
+    mes_emp = mes.copy()
+    mes_emp["Poste"] = pd.to_numeric(mes_emp["Poste"], errors="coerce").astype("Int64")
+    erp_long["Poste"] = pd.to_numeric(erp_long["Poste"], errors="coerce").astype("Int64")
+ 
+    cols_emp = [step_col, "Poste", "Temps Prévu"]
+    if hour_col is not None:
+        cols_emp.append(hour_col)
+    cols_emp.append("Nom_personne")
+ 
+    mes_emp = mes_emp.merge(
+        erp_long[cols_emp],
+        on="Poste",
+        how="left",
+        suffixes=("", "_ERP")
+    )
+ 
+    # Conversion Temps Prévu
+    mes_emp["Temps_Prevu_td"] = mes_emp["Temps Prévu"].apply(time_to_timedelta)
+ 
+    # Conversion coût horaire
+    if hour_col is not None and hour_col in mes_emp.columns:
         mes_emp[hour_col] = (
             mes_emp[hour_col]
             .astype(str)
             .str.replace(",", ".", regex=False)
         )
-        mes_emp["_Taux_horaire_num"] = pd.to_numeric(mes_emp[hour_col], errors="coerce")
-        
-        mes_emp["Temps_Prevu_td"] = mes_emp["Temps Prévu"].apply(time_to_td)
-        
-        df_valid = mes_emp.dropna(subset=["Nom_personne", "Temps_Prevu_td", "_Taux_horaire_num"]).copy()
-        
-        if not df_valid.empty and step_col in df_valid.columns:
-            for step_name in df_valid[step_col].unique():
-                df_step = df_valid[df_valid[step_col] == step_name]
-                
-                grouped = (
-                    df_step
-                    .groupby("Nom_personne")
-                    .agg(
-                        Duree_totale=("Temps_Prevu_td", lambda x: x.sum()),
-                        Taux_horaire=("_Taux_horaire_num", "first")
-                    )
-                    .reset_index()
-                )
-                
-                grouped["Heures_totales"] = grouped["Duree_totale"].dt.total_seconds() / 3600
-                grouped["Cout_personne"] = grouped["Heures_totales"] * grouped["Taux_horaire"]
-                
-                cout_mo = grouped["Cout_personne"].sum()
-                cout_mo_by_step.append({
-                    step_col: step_name,
-                    "Cout_MO": cout_mo
-                })
-    
-    cout_mo_df = pd.DataFrame(cout_mo_by_step) if cout_mo_by_step else pd.DataFrame({step_col: [], "Cout_MO": []})
-    
-    # ======================================================
-    # 3) FUSION ET CALCUL TOTAL
-    # ======================================================
-    result = cout_pieces_by_step.copy()
-    
-    if not cout_mo_df.empty:
-        result = result.merge(cout_mo_df, on=step_col, how="left")
-        result["Cout_MO"] = result["Cout_MO"].fillna(0.0)
-    else:
-        result["Cout_MO"] = 0.0
-    
-    result["Cout_Total"] = result["Cout_Pieces"] + result["Cout_MO"]
-    result = result.sort_values("Cout_Total", ascending=False)
-    
-    # ======================================================
-    # 4) FONCTIONS DE FORMATAGE
-    # ======================================================
-    def fmt_eur(x: float) -> str:
-        return f"{x:,.2f} €".replace(",", " ").replace(".", ",")
-    
-    # ======================================================
-    # 5) TABLEAU HTML
-    # ======================================================
-    html = """
-    <div style="font-family:Arial, sans-serif; max-width:1200px;">
-    <h2>Analyse des coûts par étape</h2>
-    <p style="margin-top:0;color:#666;">Coûts des pièces + coûts de main-d'œuvre par étape de fabrication.</p>
-    
-    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;">
-    <tr style="background:#f2f2f2;font-weight:bold;text-align:center;">
-    <td>Étape</td>
-    <td>Coût Pièces (€)</td>
-    <td>Coût Main-d'œuvre (€)</td>
-    <td>Coût Total (€)</td>
-    </tr>
-    """
-    
-    if not result.empty:
-        for _, row in result.iterrows():
-            cout_pieces = row["Cout_Pieces"] if pd.notna(row["Cout_Pieces"]) else 0.0
-            cout_mo = row["Cout_MO"] if pd.notna(row["Cout_MO"]) else 0.0
-            cout_total = row["Cout_Total"] if pd.notna(row["Cout_Total"]) else 0.0
-            
-            html += f"""
-    <tr>
-    <td><b>{row[step_col]}</b></td>
-    <td style="text-align:right;">{fmt_eur(cout_pieces)}</td>
-    <td style="text-align:right;">{fmt_eur(cout_mo)}</td>
-    <td style="text-align:right;font-weight:bold;color:#c0392b;">{fmt_eur(cout_total)}</td>
-    </tr>
-            """
-    else:
-        html += """
-    <tr>
-    <td colspan="4" style="text-align:center;color:#888;">
-                    Aucune donnée de coûts disponible.
-    </td>
-    </tr>
-        """
-    
-    html += """
-    </table>
-    <br/>
-    """
-    
-    # ======================================================
-    # 6) GRAPHIQUE PLOTLY
-    # ======================================================
-    try:
-        # Bar chart : Étape vs Coûts
-        fig_bar = px.bar(
-            result,
-            x=step_col,
-            y=["Cout_Pieces", "Cout_MO"],
-            labels={
-                step_col: "Étape",
-                "Cout_Pieces": "Coût Pièces (€)",
-                "Cout_MO": "Coût MO (€)"
-            },
-            title="Répartition des coûts par étape",
-            barmode="stack"
+        mes_emp[hour_col] = pd.to_numeric(mes_emp[hour_col], errors="coerce")
+ 
+    # 4.3 Coût main-d'œuvre par étape
+    if hour_col is not None and "Nom_personne" in mes_emp.columns:
+        df_emp = mes_emp.dropna(subset=[step_col, "Nom_personne", "Temps_Prevu_td", hour_col])
+ 
+        grouped_emp = (
+            df_emp
+            .groupby([step_col, "Nom_personne"])
+            .agg(
+                Duree_totale=("Temps_Prevu_td", lambda x: x.sum()),
+                Taux_horaire=(hour_col, "first")
+            )
+            .reset_index()
         )
-        fig_bar.update_xaxes(tickangle=-45)
-        graph_html_bar = fig_bar.to_html(full_html=False, include_plotlyjs="cdn")
-        html += graph_html_bar + "<br/>"
-        
-        # Pie chart : Répartition des coûts totaux
-        fig_pie = px.pie(
-            result,
-            values="Cout_Total",
+        grouped_emp["Heures_totales"] = grouped_emp["Duree_totale"].dt.total_seconds() / 3600
+        grouped_emp["Cout_personne"] = grouped_emp["Heures_totales"] * grouped_emp["Taux_horaire"]
+ 
+        # coût main-d'œuvre par étape
+        cost_emp_by_step = (
+            grouped_emp
+            .groupby(step_col)["Cout_personne"]
+            .sum()
+            .reset_index()
+            .rename(columns={"Cout_personne": "Cout_main_oeuvre"})
+        )
+ 
+        # nb personnes distinctes par étape
+        nb_personnes_by_step = (
+            grouped_emp
+            .groupby(step_col)["Nom_personne"]
+            .nunique()
+            .reset_index(name="Nb_personnes")
+        )
+    else:
+        cost_emp_by_step = pd.DataFrame({step_col: [], "Cout_main_oeuvre": []})
+        nb_personnes_by_step = pd.DataFrame({step_col: [], "Nb_personnes": []})
+ 
+    # ======================================================
+    # 5) FUSION DES INDICATEURS PAR ETAPE
+    # ======================================================
+ 
+    summary = (
+        cost_pieces_by_step
+        .merge(cost_emp_by_step, on=step_col, how="outer")
+        .merge(time_by_step[[step_col, "Temps_Prevu_td", "Temps_prevu_heures"]], on=step_col, how="outer")
+        .merge(nb_personnes_by_step, on=step_col, how="outer")
+        .merge(nb_pieces_by_step, on=step_col, how="outer")
+    )
+ 
+    for col in ["Cout_pieces", "Cout_main_oeuvre", "Temps_prevu_heures", "Nb_personnes", "Nb_pieces"]:
+        if col in summary.columns:
+            summary[col] = summary[col].fillna(0)
+ 
+    summary["Cout_total"] = summary["Cout_pieces"] + summary["Cout_main_oeuvre"]
+ 
+    summary = summary.sort_values("Cout_total", ascending=False).reset_index(drop=True)
+ 
+    # ======================================================
+    # 6) FORMATAGE DU TABLEAU POUR AFFICHAGE
+    # ======================================================
+ 
+    colonnes_affichage = [
+        step_col,
+        "Temps_Prevu_td",
+        "Temps_prevu_heures",
+        "Nb_personnes",
+        "Nb_pieces",
+        "Cout_pieces",
+        "Cout_main_oeuvre",
+        "Cout_total",
+    ]
+    colonnes_affichage = [c for c in colonnes_affichage if c in summary.columns]
+    table = summary[colonnes_affichage].copy()
+ 
+    # Temps
+    if "Temps_Prevu_td" in table.columns:
+        table["Temps_Prevu_td"] = table["Temps_Prevu_td"].astype(str)
+    if "Temps_prevu_heures" in table.columns:
+        table["Temps_prevu_heures"] = table["Temps_prevu_heures"].apply(lambda x: f"{x:.2f} h")
+ 
+    # Coûts
+    for col in ["Cout_pieces", "Cout_main_oeuvre", "Cout_total"]:
+        if col in table.columns:
+            table[col] = table[col].apply(
+                lambda x: f"{x:,.2f} €".replace(",", " ").replace(".", ",")
+            )
+ 
+    # Tableau HTML
+    table_html = table.to_html(
+        index=False,
+        escape=False,
+        border=1,
+        justify="center"
+    )
+ 
+    # ======================================================
+    # 7) CAMEMBERT REPARTITION DU COUT TOTAL
+    # ======================================================
+ 
+    # On repart de summary (numérique) pour le pie
+    pie_data = summary[[step_col, "Cout_total"]].copy()
+    pie_data["Cout_total"] = pie_data["Cout_total"].fillna(0)
+    pie_data = pie_data[pie_data["Cout_total"] > 0]
+ 
+    if pie_data.empty:
+        pie_html = "<p>Aucun coût total non nul pour tracer le camembert.</p>"
+    else:
+        fig_cout = px.pie(
+            pie_data,
             names=step_col,
-            title="Répartition des coûts totaux par étape"
+            values="Cout_total",
+            title="Répartition du coût TOTAL par étape de production"
         )
-        graph_html_pie = fig_pie.to_html(full_html=False, include_plotlyjs="cdn")
-        html += graph_html_pie
-    except Exception as e:
-        html += f"<!-- Graphiques non générés : {e} -->"
-    
-    html += """
-    </div>
+        fig_cout.update_traces(textposition="inside", textinfo="percent+label")
+        pie_html = fig_cout.to_html(full_html=False, include_plotlyjs="cdn")
+ 
+    # ======================================================
+    # 8) COMBINAISON TABLEAU + PIE EN HTML
+    # ======================================================
+ 
+    html = f"""
+<h2>Coût par Étape de production</h2>
+<p>
+    - <b>{step_col}</b> : nom de l'étape de production (ex. "Assemblage aile gauche")<br>
+    - <b>Temps_Prevu_td</b> : temps prévu cumulé (HH:MM:SS)<br>
+    - <b>Temps_prevu_heures</b> : temps prévu cumulé en heures<br>
+    - <b>Nb_personnes</b> : nombre de personnes ayant travaillé sur l'étape<br>
+    - <b>Nb_pieces</b> : nombre de pièces (occurrences) utilisées sur l'étape<br>
+    - <b>Cout_pieces</b> : coût total des pièces<br>
+    - <b>Cout_main_oeuvre</b> : coût total main-d'œuvre<br>
+    - <b>Cout_total</b> : coût global de l'étape (pièces + main-d'œuvre)
+</p>
+    {table_html}
+<br/>
+    {pie_html}
     """
-    
+ 
     return html
-
  
 def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
     """
@@ -1643,128 +1693,3 @@ def html_step_workflow(
  
     return html
 
-# ======================================================
-
-# 5. VISU RETARDS > 10 MIN EN ROUGE (HTML)
-
-# ======================================================
- 
-import datetime
- 
-def html_retards_10min(production_chains: pd.DataFrame) -> str:
-
-    """
-
-    Retourne un tableau HTML avec toutes les lignes où
-
-    (Temps Réel - Temps Prévu) > 10 minutes.
-
-    Les valeurs sont affichées en rouge.
-
-    Retourne : string HTML
-
-    """
- 
-    df = production_chains.copy()
- 
-    # --- Converter datetime.time -> timedelta ---
-
-    def time_to_timedelta(x):
-
-        if isinstance(x, datetime.time):
-
-            return datetime.timedelta(
-
-                hours=x.hour,
-
-                minutes=x.minute,
-
-                seconds=x.second
-
-            )
-
-        else:
-
-            try:
-
-                return pd.to_timedelta(x, errors="coerce")
-
-            except:
-
-                return pd.NaT
- 
-    # Conversion
-
-    df["Temps_Reel_td"] = df["Temps Réel"].apply(time_to_timedelta)
-
-    df["Temps_Prev_td"] = df["Temps Prévu"].apply(time_to_timedelta)
- 
-    # Écart
-
-    df["Ecart"] = df["Temps_Reel_td"] - df["Temps_Prev_td"]
-
-    df["Ecart_min"] = df["Ecart"].dt.total_seconds() / 60
- 
-    # Filtrer > 10 min
-
-    retards = df[df["Ecart_min"] > 10].copy()
- 
-    if retards.empty:
-
-        return "<p>Aucun retard supérieur à 10 minutes.</p>"
- 
-    # Colonnes utiles
-
-    cols = ["Poste", "Nom", "Temps Prévu", "Temps Réel", "Ecart_min", "Référence"]
-
-    cols = [c for c in cols if c in retards.columns]
-
-    retards = retards[cols]
- 
-    # Tri par poste puis par retard
-
-    retards = (
-
-        retards
-
-        .sort_values(["Poste", "Ecart_min"], ascending=[True, False])
-
-        .reset_index(drop=True)
-
-    )
- 
-    # Construction HTML manuelle (rouge)
-
-    html = """
-<h2 style="color:red;">Postes avec un retard supérieur à 10 minutes</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-<tr style="background-color:#ffe5e5;font-weight:bold;text-align:center;">
-<td>Poste</td>
-<td>Opération</td>
-<td>Temps prévu</td>
-<td>Temps réel</td>
-<td>Écart (min)</td>
-<td>Références</td>
-</tr>
-
-    """
- 
-    for _, row in retards.iterrows():
-
-        html += f"""
-<tr style="color:red;">
-<td><b>{row['Poste']}</b></td>
-<td>{row['Nom']}</td>
-<td>{row['Temps Prévu']}</td>
-<td>{row['Temps Réel']}</td>
-<td><b>{row['Ecart_min']:.1f}</b></td>
-<td>{row.get('Référence', '')}</td>
-</tr>
-
-        """
- 
-    html += "</table>"
- 
-    return html
-
- 
