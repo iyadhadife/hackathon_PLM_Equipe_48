@@ -48,6 +48,135 @@ body {
   box-shadow: none;
 }
 
+/* --- SIDEBAR DROITE - ACCÈS RAPIDE --- */
+.sidebar-right {
+  width: 350px;
+  background-color: #ffffff;
+  border-left: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, transform 0.3s ease;
+  flex-shrink: 0;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+  position: relative;
+}
+
+.sidebar-right.closed {
+  width: 0;
+  overflow: hidden;
+  border-left: none;
+  box-shadow: none;
+}
+
+.sidebar-right-header {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-right-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+}
+
+.sidebar-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #868e96;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.sidebar-close-btn:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.sidebar-right-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.poste-selection-group-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.poste-selection-group-sidebar label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.poste-dropdown-sidebar {
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.poste-dropdown-sidebar:hover {
+  border-color: #4c6ef5;
+  background-color: #f8f9fa;
+}
+
+.poste-dropdown-sidebar:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.sidebar-action-btn {
+  padding: 10px 16px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.sidebar-action-btn:hover {
+  background-color: #bbdefb;
+  border-color: #64b5f6;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+}
+
+.sidebar-action-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.sidebar-action-btn:active {
+  transform: translateY(1px);
+}
+
 .sidebar-header {
   height: 64px;
   padding: 0 16px;
@@ -1125,60 +1254,15 @@ export default function App() {
               {loading ? "Chargement..." : "⚠️ Retards > 10 min"}
             </button>
 
-            {/* Volet déroulant - Sélection Poste + Accès rapide */}
-            <div className="quick-access-section">
-              <button 
-                className="quick-access-toggle"
-                onClick={() => setIsQuickAccessOpen(!isQuickAccessOpen)}
-              >
-                <span>▾ Accès rapide</span>
-                <span className={`arrow ${isQuickAccessOpen ? 'open' : ''}`}>▼</span>
-              </button>
-              
-              {isQuickAccessOpen && (
-                <div className="quick-access-panel">
-                  <div className="quick-access-content">
-                    {/* Sélection du poste */}
-                    <div className="poste-selection-group">
-                      <label htmlFor="poste-select">Sélectionner un poste :</label>
-                      <select 
-                        id="poste-select"
-                        value={selectedPoste} 
-                        onChange={(e) => setSelectedPoste(e.target.value)}
-                        className="poste-dropdown-inline"
-                      >
-                        <option value="">-- Sélectionner un poste --</option>
-                        {postes.map((poste, index) => (
-                          <option key={index} value={poste}>{poste}</option>
-                        ))}
-                      </select>
-                      <button 
-                        onClick={() => {
-                          votreFonctionAppelBackend();
-                          setSelectedFile("");
-                        }} 
-                        className="quick-access-btn poste-btn"
-                        disabled={loading || !selectedPoste}
-                        title={!selectedPoste ? "Veuillez sélectionner un poste" : ""}
-                      >
-                        {loading ? "Chargement..." : "📊 Poste par pièces"}
-                      </button>
-                    </div>
-                    
-                    {/* Bouton de fermeture */}
-                    <div className="quick-access-footer">
-                      <button 
-                        onClick={() => setIsQuickAccessOpen(false)}
-                        className="quick-access-btn close-btn"
-                        title="Fermer l'accès rapide"
-                      >
-                        ✕ Fermer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Bouton pour ouvrir la sidebar */}
+            <button 
+              onClick={() => setIsQuickAccessOpen(!isQuickAccessOpen)}
+              className="primary-btn"
+              style={{ backgroundColor: '#6c757d' }}
+              title="Ouvrir l'accès rapide"
+            >
+              {isQuickAccessOpen ? "✕ Fermer" : "☰ Accès rapide"}
+            </button>
           </div>
 
           {/* PARTIE DROITE (Status + Upload) */}
@@ -1353,6 +1437,49 @@ export default function App() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* --- SIDEBAR DROITE - ACCÈS RAPIDE --- */}
+      <div className={`sidebar-right ${isQuickAccessOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-right-header">
+          <h2 className="sidebar-right-title">Accès rapide</h2>
+          <button 
+            onClick={() => setIsQuickAccessOpen(false)}
+            className="sidebar-close-btn"
+            title="Fermer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="sidebar-right-content">
+          {/* Sélection du poste */}
+          <div className="poste-selection-group-sidebar">
+            <label htmlFor="poste-select-sidebar">Sélectionner un poste :</label>
+            <select 
+              id="poste-select-sidebar"
+              value={selectedPoste} 
+              onChange={(e) => setSelectedPoste(e.target.value)}
+              className="poste-dropdown-sidebar"
+            >
+              <option value="">-- Sélectionner un poste --</option>
+              {postes.map((poste, index) => (
+                <option key={index} value={poste}>{poste}</option>
+              ))}
+            </select>
+            <button 
+              onClick={() => {
+                votreFonctionAppelBackend();
+                setSelectedFile("");
+              }} 
+              className="sidebar-action-btn"
+              disabled={loading || !selectedPoste}
+              title={!selectedPoste ? "Veuillez sélectionner un poste" : ""}
+            >
+              {loading ? "Chargement..." : "📊 Poste par pièces"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
