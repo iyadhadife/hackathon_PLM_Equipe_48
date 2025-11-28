@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download, Maximize2, Minimize2 } from 'lucide-react';
 import Chatbot from './components/Chatbot.jsx';
 
 // --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
@@ -949,6 +949,7 @@ export default function App() {
   const [workflowStep, setWorkflowStep] = useState("");
   const [workflowMaxNodes, setWorkflowMaxNodes] = useState(50);
   const [isQuickAccessOpen, setIsQuickAccessOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Liste des postes disponibles
   const postes = [
@@ -1188,7 +1189,67 @@ export default function App() {
       {/* Widget Chatbot */}
       <Chatbot />
 
+      {/* Mode plein écran du contenu */}
+      {isFullscreen && contenuDiv && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#f8f9fa',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '20px'
+          }}
+        >
+          <div 
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              marginBottom: '10px',
+              gap: '10px'
+            }}
+          >
+            <button 
+              onClick={() => setIsFullscreen(false)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#e74c3c',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                fontWeight: 500
+              }}
+              title="Quitter le plein écran"
+            >
+              <Minimize2 size={16} />
+              Quitter
+            </button>
+          </div>
+          <div 
+            style={{
+              flex: 1,
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              overflow: 'auto',
+              padding: '20px'
+            }}
+          >
+            <div dangerouslySetInnerHTML={{ __html: contenuDiv }} />
+          </div>
+        </div>
+      )}
+
       {/* --- SIDEBAR --- */}
+      {!isFullscreen && (
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <span className="sidebar-title">Mes Documents</span>
@@ -1254,8 +1315,10 @@ export default function App() {
           )}
         </div>
       </div>
+      )}
 
       {/* --- CONTENU PRINCIPAL --- */}
+      {!isFullscreen && (
       <div className="main-content">
         
         {/* HEADER */}
@@ -1376,12 +1439,21 @@ export default function App() {
                   <h3 style={{ margin: 0, color: '#1971c2', fontSize: '1.1rem', fontWeight: 700 }}>
                     📊 Résultat de l'action
                   </h3>
-                  <button 
-                    onClick={() => setContenuDiv("")} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666', padding: '4px 8px', hover: { color: '#000' } }}
-                  >
-                    ✖
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button 
+                      onClick={() => setIsFullscreen(true)} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#4c6ef5', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s' }}
+                      title="Afficher en plein écran"
+                    >
+                      <Maximize2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setContenuDiv("")} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666', padding: '4px 8px', hover: { color: '#000' } }}
+                    >
+                      ✖
+                    </button>
+                  </div>
                 </div>
               )}
               
@@ -1519,8 +1591,10 @@ export default function App() {
           </div>
         )}
       </div>
+      )}
 
       {/* --- SIDEBAR DROITE - ACCÈS RAPIDE --- */}
+      {!isFullscreen && (
       <div className={`sidebar-right ${isQuickAccessOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-right-header">
           <h2 className="sidebar-right-title">Accès rapide</h2>
@@ -1562,6 +1636,7 @@ export default function App() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
