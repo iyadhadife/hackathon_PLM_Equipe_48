@@ -25,7 +25,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Extensions autorisées
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'webp', 'xls', 'xlsx'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'webp', 'xls', 'xlsx', 'csv'}
 
 # Configuration de Gemini (Remplacez par votre clé API)
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')

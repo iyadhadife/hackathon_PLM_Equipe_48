@@ -1604,9 +1604,14 @@ def html_step_workflow(
     if df.empty:
         return "<p>Aucune donnée à afficher après nettoyage des valeurs nulles.</p>"
 
+    # Debug : Vérifier les colonnes
+    print(f"[DEBUG Sankey] Colonnes du DataFrame : {list(df.columns)}")
+    print(f"[DEBUG Sankey] Nombre de lignes : {len(df)}")
+    print(f"[DEBUG Sankey] Colonnes requises : {['Nom', 'Poste', 'Code_piece']}")
+
     # ======================
     # 4. Définition des noeuds
-    # ======================
+    # =====================
 
     # Étapes
     steps = df[step_col].unique().tolist()
@@ -1625,6 +1630,8 @@ def html_step_workflow(
 
     # Postes
     postes = sorted(df["Poste"].unique())
+    print(f"[DEBUG Sankey] Étapes trouvées : {len(steps)} | Postes trouvés : {len(postes)}")
+    
     if len(postes) > max_nodes_per_level:
         top_postes = (
             df.groupby("Poste")
@@ -1701,15 +1708,16 @@ def html_step_workflow(
             targets.append(idx_piece[piece])
             values.append(row["val"])
 
+    print(f"[DEBUG Sankey] Sources : {len(sources)} | Targets : {len(targets)} | Values : {len(values)}")
+    
     if not sources:
-        return "<p>Pas de liens à afficher (sources/targets vides).</p>"
+        return f"<p>Pas de liens à afficher (sources/targets vides).<br>Étapes: {len(steps)}, Postes: {len(postes)}, Pièces: {len(pieces)}</p>"
 
-    # ======================
+    # ... (votre code précédent reste identique jusqu'à la fin)
+
     # 7. Création de la figure Plotly
     # ======================
-
     link = dict(source=sources, target=targets, value=values)
-    # node colors : optionnel, plotly gère les couleurs par défaut, mais on peut personnaliser
     node = dict(label=labels, pad=15, thickness=15)
 
     titre = "Workflow Étape (Nom MES) → Poste → Pièce"
@@ -1721,17 +1729,13 @@ def html_step_workflow(
         title_text=titre, 
         font_size=10,
         height=700,
-        margin=dict(l=0, r=0, t=40, b=0)
+        margin=dict(l=10, r=10, t=40, b=10), # Marges légèrement ajustées
+        plot_bgcolor='white',
+        paper_bgcolor='white'
     )
 
-    # Retour HTML
-    html = fig.to_html(full_html=False, include_plotlyjs="cdn")
+    # CORRECTION ICI : Passer full_html à True pour générer une page autonome
+    # Cela permet à l'iframe (voir étape 2) de charger correctement les scripts
+    html = fig.to_html(full_html=True, include_plotlyjs="cdn")
     
-    # Wrapper minimal sans hauteur fixe (Plotly gère sa propre hauteur)
-    wrapped_html = f"""
-    <div style="width: 100%;">
-        {html}
-    </div>
-    """
-    
-    return wrapped_html
+    return html
