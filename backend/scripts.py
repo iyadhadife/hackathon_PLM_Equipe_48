@@ -1144,9 +1144,9 @@ def html_costs_by_step(mes: pd.DataFrame,
 def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
     """
     Retourne un tableau HTML :
-    Semaine | Étape de production | Expert | Confirmé | Débutant | Total_personnes
+    Semaine | Étape de production | Poste | Expert | Confirmé | Débutant | Total_personnes
  
-    - Une personne n'est comptée qu'une seule fois par (Semaine, Étape, Niveau d'expérience)
+    - Une personne n'est comptée qu'une seule fois par (Semaine, Étape, Poste, Niveau d'expérience)
     - Chaque ligne est colorée :
         * Vert  si >= 1/3 des personnes sont 'Expert'
         * Rouge sinon
@@ -1161,7 +1161,7 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
         return "<p>Impossible de trouver la colonne 'Nom' (ou 'Nom_operation') dans production_chains.</p>"
  
     # 2) Vérifier les colonnes nécessaires
-    required_cols = ["Semaine", step_col, "Nom_personne", "Niveau d'expérience"]
+    required_cols = ["Semaine", step_col, "Poste", "Nom_personne", "Niveau d'expérience"]
     missing = [c for c in required_cols if c not in production_chains.columns]
     if missing:
         return f"<p>Colonnes manquantes dans production_chains : {missing}</p>"
@@ -1169,7 +1169,7 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
     # 3) Sous-dataframe propre
     df_exp = (
         production_chains[required_cols]
-        .dropna(subset=["Semaine", step_col, "Nom_personne", "Niveau d'expérience"])
+        .dropna(subset=["Semaine", step_col, "Poste", "Nom_personne", "Niveau d'expérience"])
         .copy()
     )
  
@@ -1178,16 +1178,17 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
     df_exp["Semaine"] = df_exp["Semaine"].astype(int)
  
     df_exp[step_col] = df_exp[step_col].astype(str).str.strip()
+    df_exp["Poste"] = pd.to_numeric(df_exp["Poste"], errors="coerce").astype("Int64")
     df_exp["Nom_personne"] = df_exp["Nom_personne"].astype(str).str.strip()
     df_exp["Niveau d'expérience"] = df_exp["Niveau d'expérience"].astype(str).str.strip()
  
     if df_exp.empty:
-        return "<p>Aucune donnée exploitable pour semaines / étapes / niveaux d'expérience.</p>"
+        return "<p>Aucune donnée exploitable pour semaines / étapes / postes / niveaux d'expérience.</p>"
  
-    # 4) Comptage des PERSONNES DISTINCTES par (Semaine, Étape, Niveau d'expérience)
+    # 4) Comptage des PERSONNES DISTINCTES par (Semaine, Étape, Poste, Niveau d'expérience)
     group = (
         df_exp
-        .groupby(["Semaine", step_col, "Niveau d'expérience"])["Nom_personne"]
+        .groupby(["Semaine", step_col, "Poste", "Niveau d'expérience"])["Nom_personne"]
         .nunique()
         .reset_index(name="Nb_personnes")
     )
@@ -1195,10 +1196,10 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
     if group.empty:
         return "<p>Aucune donnée agrégée (groupby vide).</p>"
  
-    # 5) Pivot : une ligne = (Semaine, Étape), colonnes = niveaux d'expérience
+    # 5) Pivot : une ligne = (Semaine, Étape, Poste), colonnes = niveaux d'expérience
     pivot = (
         group
-        .pivot(index=["Semaine", step_col],
+        .pivot(index=["Semaine", step_col, "Poste"],
                columns="Niveau d'expérience",
                values="Nb_personnes")
         .fillna(0)
@@ -1211,11 +1212,11 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
     cols_autres = [c for c in pivot.columns if c not in cols_finales]
     pivot = pivot[cols_finales + cols_autres]
  
-    # 6) Total par (Semaine, Étape)
+    # 6) Total par (Semaine, Étape, Poste)
     pivot["Total_personnes"] = pivot.sum(axis=1)
  
     # 7) Flatten index
-    result = pivot.reset_index().sort_values(["Semaine", step_col])
+    result = pivot.reset_index().sort_values(["Semaine", step_col, "Poste"])
     result = result.rename(columns={step_col: "Etape_de_production"})
  
     if result.empty:
@@ -1223,17 +1224,19 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
  
     # ===============================
     # 8) Construction du HTML :
-    #    - pas de colonne d'index
     #    - Semaine affichée une seule fois (rowspan)
+    #    - Étape de production affichée une seule fois par semaine (rowspan)
+    #    - Poste affiché pour chaque ligne
     #    - lignes en vert/rouge selon % d'experts
     # ===============================
  
     html = """
-<h3>Nombre de personnes par Semaine, Étape de production et niveau d'expérience</h3>
+<h3>Nombre de personnes par Semaine, Étape de production, Poste et niveau d'expérience</h3>
 <table """ + TABLE_STYLE + """>
 <tr """ + TABLE_HEADER_STYLE + """>
 <td>Semaine</td>
 <td>Étape de production</td>
+<td>Poste</td>
 <td>Expert</td>
 <td>Confirmé</td>
 <td>Débutant</td>
@@ -1242,39 +1245,52 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
 """
  
     for semaine, df_sem in result.groupby("Semaine"):
-        df_sem = df_sem.sort_values("Etape_de_production")
-        rowspan = len(df_sem)
-        first_row = True
+        df_sem = df_sem.sort_values(["Etape_de_production", "Poste"])
+        semaine_rowspan = len(df_sem)
+        first_semaine_row = True
  
-        for _, row in df_sem.iterrows():
-            expert = int(row["Expert"]) if "Expert" in result.columns else 0
-            confirme = int(row["Confirmé"]) if "Confirmé" in result.columns else 0
-            debutant = int(row["Débutant"]) if "Débutant" in result.columns else 0
-            total = int(row["Total_personnes"])
+        for etape, df_etape in df_sem.groupby("Etape_de_production"):
+            df_etape = df_etape.sort_values("Poste")
+            etape_rowspan = len(df_etape)
+            first_etape_row = True
  
-            # Couleur de la ligne
-            if total > 0 and expert >= total / 3:
-                bgcolor = "background-color:#c6f7c3;"   # vert clair
-            else:
-                bgcolor = "background-color:#f7c3c3;"   # rouge clair
+            for _, row in df_etape.iterrows():
+                expert = int(row["Expert"]) if "Expert" in result.columns else 0
+                confirme = int(row["Confirmé"]) if "Confirmé" in result.columns else 0
+                debutant = int(row["Débutant"]) if "Débutant" in result.columns else 0
+                total = int(row["Total_personnes"])
  
-            html += f"<tr style='{bgcolor}'>"
+                # Couleur de la ligne
+                if total > 0 and expert >= total / 3:
+                    bgcolor = "background-color:#c6f7c3;"   # vert clair
+                else:
+                    bgcolor = "background-color:#f7c3c3;"   # rouge clair
  
-            # Semaine affichée une seule fois
-            if first_row:
-                html += (
-                    f"<td rowspan='{rowspan}' "
-                    f"style='font-weight:bold;vertical-align:top;'>{semaine}</td>"
-                )
-                first_row = False
+                html += f"<tr style='{bgcolor}'>"
  
-            html += f"<td>{row['Etape_de_production']}</td>"
-            html += f"<td style='text-align:right;'>{expert}</td>"
-            html += f"<td style='text-align:right;'>{confirme}</td>"
-            html += f"<td style='text-align:right;'>{debutant}</td>"
-            html += f"<td style='text-align:right;font-weight:bold;'>{total}</td>"
+                # Semaine affichée une seule fois
+                if first_semaine_row:
+                    html += (
+                        f"<td rowspan='{semaine_rowspan}' "
+                        f"style='font-weight:bold;vertical-align:top;'>{semaine}</td>"
+                    )
+                    first_semaine_row = False
  
-            html += "</tr>"
+                # Étape affichée une seule fois par étape
+                if first_etape_row:
+                    html += (
+                        f"<td rowspan='{etape_rowspan}' "
+                        f"style='vertical-align:top;'>{etape}</td>"
+                    )
+                    first_etape_row = False
+ 
+                html += f"<td style='text-align:center;'><b>{row['Poste']}</b></td>"
+                html += f"<td style='text-align:right;'>{expert}</td>"
+                html += f"<td style='text-align:right;'>{confirme}</td>"
+                html += f"<td style='text-align:right;'>{debutant}</td>"
+                html += f"<td style='text-align:right;font-weight:bold;'>{total}</td>"
+ 
+                html += "</tr>"
  
     html += "</table>"
  
