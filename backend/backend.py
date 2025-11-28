@@ -50,10 +50,78 @@ def serve():
 
 @app.route('/api/poste_piece', methods=['GET'])
 def poste_piece():
-    df = build_production_chains('uploads/MES_Extraction.xlsx', 
-                                 'uploads/PLM_DataSet.xlsx', 
-                                 'uploads/ERP_Equipes_Airplus.xlsx')
-    return html_poste_pieces(df,1)
+    postes = [
+  "Montage train atterissage",
+  "Assemblage moteur / fuselage / train atterissage",
+  "Assemblage visserie fuselage partie basse",
+  "Assemblage visserie train atterissage",
+  "Assemblage fuselage centrale",
+  "Assemblage queue avion",
+  "Assemblage cockpit",
+  "Assemblage aile gauche",
+  "Assemblage réacteurs",
+  "Fixation réacteur aile gauche",
+  "Assemblage train atterissage gauche",
+  "Fixation aile gauche avion / train atterissage",
+  "Assemblage aile droite",
+  "Fixation réacteur aile droite",
+  "Assemblage train atterissage droit",
+  "Fixation aile droit avion / train atterissage",
+  "Fixation bout ailes",
+  "Passage faisceaux électrique ailes",
+  "Fixation lumières bout ailes",
+  "Stickers cockpit",
+  "Stickers réacteur",
+  "Stickers fuselage gauche",
+  "Stickers fuselage droit"
+    ]
+    
+    # Récupérer le poste depuis les paramètres GET
+    selected_poste = request.args.get('poste', None)
+    
+    # Si aucun poste n'est spécifié, retourner une erreur
+    if not selected_poste or selected_poste not in postes:
+        return jsonify({'error': 'Poste invalide ou non spécifié'}), 400
+    
+    mes = pd.read_excel('uploads/MES_Extraction.xlsx')
+    plm = pd.read_excel('uploads/PLM_DataSet.xlsx')
+    erp = pd.read_excel('uploads/ERP_Equipes_Airplus.xlsx')
+    return html_step_details(mes,plm,erp,selected_poste)
+
+# --- ROUTE 6 : Expérience par semaine et étape ---
+@app.route('/api/experience_week_step', methods=['GET'])
+def experience_week_step():
+    try:
+        mes = pd.read_excel('uploads/MES_Extraction.xlsx')
+        plm = pd.read_excel('uploads/PLM_DataSet.xlsx')
+        erp = pd.read_excel('uploads/ERP_Equipes_Airplus.xlsx')
+        
+        # Construire les chaînes de production
+        production_chains = build_production_chains('uploads/MES_Extraction.xlsx',
+                                                     'uploads/PLM_DataSet.xlsx',
+                                                     'uploads/ERP_Equipes_Airplus.xlsx')
+        
+        # Générer le HTML avec expérience par semaine et étape
+        html = html_experience_by_week_step(production_chains)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
+
+# --- ROUTE 7 : Coûts par étape ---
+@app.route('/api/costs_by_step', methods=['GET'])
+def costs_by_step():
+    try:
+        mes = pd.read_excel('uploads/MES_Extraction.xlsx')
+        plm = pd.read_excel('uploads/PLM_DataSet.xlsx')
+        erp = pd.read_excel('uploads/ERP_Equipes_Airplus.xlsx')
+        
+        # Générer le HTML avec les coûts par étape
+        html = html_costs_by_step(mes, plm, erp)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
 
 # --- ROUTE 2 : API pour lister les fichiers (GET /api/files) ---
 @app.route('/api/files', methods=['GET'])
@@ -428,6 +496,122 @@ def format_result_as_human_readable(result):
     
     return str(result)
 
+
+# --- ROUTE 8 : Workflow Sankey ---
+@app.route('/api/step_workflow', methods=['GET'])
+def step_workflow():
+    try:
+        # Récupérer les paramètres
+        selected_step = request.args.get('step', None)
+        max_nodes = request.args.get('max_nodes', 50, type=int)
+        
+        # Construire les chaînes de production
+        production_chains = build_production_chains(
+            'uploads/MES_Extraction.xlsx',
+            'uploads/PLM_DataSet.xlsx',
+            'uploads/ERP_Equipes_Airplus.xlsx'
+        )
+        
+        # Générer le HTML avec le workflow Sankey
+        html = html_step_workflow(production_chains, selected_step=selected_step, max_nodes_per_level=max_nodes)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
+
+# --- ROUTE 9 : Retards > 10 minutes ---
+@app.route('/api/retards_10min', methods=['GET'])
+def retards_10min():
+    try:
+        # Construire les chaînes de production
+        production_chains = build_production_chains(
+            'uploads/MES_Extraction.xlsx',
+            'uploads/PLM_DataSet.xlsx',
+            'uploads/ERP_Equipes_Airplus.xlsx'
+        )
+        
+        # Générer le HTML avec les retards
+        html = html_retards_10min(production_chains)
+        
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
+
+# --- ROUTE 10 : Afficher un fichier Excel en tant que tableau HTML ---
+@app.route('/api/excel_table/<filename>', methods=['GET'])
+def excel_table(filename):
+    try:
+        # Sécuriser le nom de fichier
+        filename = secure_filename(filename)
+        
+        # Vérifier que le fichier existe et est un .xlsx
+        if not filename.endswith('.xlsx'):
+            return jsonify({'error': 'Seuls les fichiers .xlsx sont supportés'}), 400
+        
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'Fichier non trouvé'}), 404
+        
+        # Charger le fichier Excel
+        df = pd.read_excel(filepath)
+        
+        # Limiter à 1000 lignes pour éviter les problèmes de performance
+        df = df.head(1000)
+        
+        # Convertir en HTML tableau avec style
+        html_table = df.to_html(classes='excel-table', border=0, index=False)
+        
+        # Ajouter du CSS pour styliser le tableau
+        html_content = f"""
+        <style>
+            .excel-table {{
+                width: 100%;
+                border-collapse: collapse;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                font-size: 13px;
+            }}
+            .excel-table th {{
+                background-color: #4c6ef5;
+                color: white;
+                padding: 12px;
+                text-align: left;
+                font-weight: 600;
+                border: 1px solid #dee2e6;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }}
+            .excel-table td {{
+                padding: 10px 12px;
+                border: 1px solid #dee2e6;
+                text-align: left;
+            }}
+            .excel-table tbody tr:nth-child(odd) {{
+                background-color: #f8f9fa;
+            }}
+            .excel-table tbody tr:hover {{
+                background-color: #e7f5ff;
+            }}
+            .table-info {{
+                margin-bottom: 20px;
+                padding: 12px 16px;
+                background-color: #e7f5ff;
+                border-left: 4px solid #4c6ef5;
+                border-radius: 4px;
+                font-size: 13px;
+            }}
+        </style>
+        <div class="table-info">
+            <strong>📊 {filename}</strong> | Lignes: {len(df)} | Colonnes: {len(df.columns)}
+        </div>
+        {html_table}
+        """
+        
+        return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement du fichier : {str(e)}'}), 500
 
 # @app.route('/api/poste_piece', methods=['GET'])
 # def poste_piece():

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download } from 'lucide-react';
 import Chatbot from './components/Chatbot.jsx';
 
 // --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
@@ -31,7 +31,7 @@ body {
 
 /* --- SIDEBAR --- */
 .sidebar {
-  width: 280px;
+  width: 380px;
   background-color: #ffffff;
   border-right: 1px solid #e9ecef;
   display: flex;
@@ -46,6 +46,135 @@ body {
   overflow: hidden;
   border-right: none;
   box-shadow: none;
+}
+
+/* --- SIDEBAR DROITE - ACCÈS RAPIDE --- */
+.sidebar-right {
+  width: 350px;
+  background-color: #ffffff;
+  border-left: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, transform 0.3s ease;
+  flex-shrink: 0;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+  position: relative;
+}
+
+.sidebar-right.closed {
+  width: 0;
+  overflow: hidden;
+  border-left: none;
+  box-shadow: none;
+}
+
+.sidebar-right-header {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-right-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+}
+
+.sidebar-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #868e96;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.sidebar-close-btn:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.sidebar-right-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.poste-selection-group-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.poste-selection-group-sidebar label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.poste-dropdown-sidebar {
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.poste-dropdown-sidebar:hover {
+  border-color: #4c6ef5;
+  background-color: #f8f9fa;
+}
+
+.poste-dropdown-sidebar:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.sidebar-action-btn {
+  padding: 10px 16px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.sidebar-action-btn:hover {
+  background-color: #bbdefb;
+  border-color: #64b5f6;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+}
+
+.sidebar-action-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.sidebar-action-btn:active {
+  transform: translateY(1px);
 }
 
 .sidebar-header {
@@ -137,6 +266,8 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 260px;
+  word-break: break-all;
 }
 
 .file-size {
@@ -156,13 +287,14 @@ body {
 
 /* HEADER */
 .top-header {
-  height: 64px;
+  height: auto;
+  min-height: 140px;
   background-color: #ffffff;
   border-bottom: 1px solid #e9ecef;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16px 24px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Légère ombre */
   z-index: 10;
 }
@@ -171,6 +303,7 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .icon-btn {
@@ -233,9 +366,378 @@ body {
   box-shadow: 0 4px 8px rgba(76, 110, 245, 0.4);
 }
 
+.primary-btn:disabled {
+  background-color: #adb5bd;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.primary-btn:disabled:hover {
+  background-color: #adb5bd;
+  box-shadow: none;
+}
+
+.primary-btn[style*="background-color: #27ae60"]:hover {
+  background-color: #229954;
+  box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4);
+}
+
+.primary-btn[style*="background-color: #e67e22"]:hover {
+  background-color: #d35400;
+  box-shadow: 0 4px 8px rgba(230, 126, 34, 0.4);
+}
+
+.primary-btn[style*="background-color: #8e44ad"]:hover {
+  background-color: #7a3a8f;
+  box-shadow: 0 4px 8px rgba(142, 68, 173, 0.4);
+}
+
 .primary-btn:active {
   transform: translateY(1px); /* Effet de clic */
   box-shadow: none;
+}
+
+/* Modal Workflow */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.modal-btn-primary {
+  background-color: #8e44ad;
+  color: white;
+}
+
+.modal-btn-primary:hover {
+  background-color: #7a3a8f;
+}
+
+.modal-btn-secondary {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.modal-btn-secondary:hover {
+  background-color: #dee2e6;
+}
+
+/* Quick Access Section - Volet Déroulant */
+.quick-access-section {
+  margin-top: 16px;
+  border-top: 1px solid #e9ecef;
+  padding-top: 12px;
+}
+
+.quick-access-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s;
+}
+
+.quick-access-toggle:hover {
+  background-color: #e9ecef;
+  border-color: #4c6ef5;
+}
+
+.quick-access-toggle .arrow {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-size: 0.8rem;
+}
+
+.quick-access-toggle .arrow.open {
+  transform: rotate(180deg);
+}
+
+.quick-access-panel {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quick-access-btn {
+  padding: 8px 14px;
+  background-color: #fff5f5;
+  color: #c92a2a;
+  border: 1px solid #ffa8a8;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.quick-access-btn:hover {
+  background-color: #ffe3e3;
+  border-color: #ff8787;
+  box-shadow: 0 2px 8px rgba(201, 42, 42, 0.2);
+}
+
+.quick-access-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.quick-access-btn:active {
+  transform: translateY(1px);
+}
+
+/* Boutons Container */
+.buttons-container {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Poste Selection Group */
+.poste-selection-group {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 12px;
+}
+
+.poste-selection-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.poste-dropdown-inline {
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 200px;
+}
+
+.poste-dropdown-inline:hover {
+  border-color: #4c6ef5;
+  background-color: #f8f9fa;
+}
+
+.poste-dropdown-inline:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.poste-btn {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  white-space: nowrap;
+}
+
+.poste-btn:hover {
+  background-color: #bbdefb;
+  border-color: #64b5f6;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+}
+
+.poste-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+/* Quick Access Content */
+.quick-access-content {
+  padding: 12px 0;
+}
+
+/* Quick Actions Group */
+.quick-actions-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.delays-btn {
+  background-color: #fff5f5;
+  color: #c92a2a;
+  border: 1px solid #ffa8a8;
+}
+
+.delays-btn:hover {
+  background-color: #ffe3e3;
+  border-color: #ff8787;
+  box-shadow: 0 2px 8px rgba(201, 42, 42, 0.2);
+}
+
+.delays-btn:disabled {
+  background-color: #adb5bd;
+  color: white;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+}
+
+/* Quick Access Footer */
+.quick-access-footer {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 12px;
+}
+
+.close-btn {
+  background-color: #f1f3f5;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  flex: 1;
+  margin-left: auto;
+}
+
+.close-btn:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn:active {
+  transform: translateY(1px);
+}
+
+.poste-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 15px;
+}
+
+.poste-dropdown {
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 250px;
+}
+
+.poste-dropdown:hover {
+  border-color: #4c6ef5;
+  background-color: #f8f9fa;
+}
+
+.poste-dropdown:focus {
+  outline: none;
+  border-color: #4c6ef5;
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
 }
 
 /* PREVIEW AREA */
@@ -285,8 +787,7 @@ body {
   flex: 1;
   overflow: auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background-color: #f8f9fa;
   /* Pattern subtil */
   background-image: radial-gradient(#dee2e6 1px, transparent 1px);
@@ -443,6 +944,38 @@ export default function App() {
   const fileInputRef = useRef(null);
   const [contenuDiv, setContenuDiv] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedPoste, setSelectedPoste] = useState("");
+  const [showWorkflowModal, setShowWorkflowModal] = useState(false);
+  const [workflowStep, setWorkflowStep] = useState("");
+  const [workflowMaxNodes, setWorkflowMaxNodes] = useState(50);
+  const [isQuickAccessOpen, setIsQuickAccessOpen] = useState(false);
+
+  // Liste des postes disponibles
+  const postes = [
+    "Montage train atterissage",
+    "Assemblage moteur / fuselage / train atterissage",
+    "Assemblage visserie fuselage partie basse",
+    "Assemblage visserie train atterissage",
+    "Assemblage fuselage centrale",
+    "Assemblage queue avion",
+    "Assemblage cockpit",
+    "Assemblage aile gauche",
+    "Assemblage réacteurs",
+    "Fixation réacteur aile gauche",
+    "Assemblage train atterissage gauche",
+    "Fixation aile gauche avion / train atterissage",
+    "Assemblage aile droite",
+    "Fixation réacteur aile droite",
+    "Assemblage train atterissage droit",
+    "Fixation aile droit avion / train atterissage",
+    "Fixation bout ailes",
+    "Passage faisceaux électrique ailes",
+    "Fixation lumières bout ailes",
+    "Stickers cockpit",
+    "Stickers réacteur",
+    "Stickers fuselage gauche",
+    "Stickers fuselage droit"
+  ];
 
   useEffect(() => {
     loadFiles(); // Utilisation de la nouvelle fonction loadFiles
@@ -460,13 +993,17 @@ export default function App() {
   };
 
   const votreFonctionAppelBackend = async () => {
-    // Optionnel : état de chargement
-    setLoading(true); 
+    // Vérifier qu'un poste est sélectionné
+    if (!selectedPoste) {
+      setStatus({ type: 'error', message: 'Veuillez sélectionner un poste' });
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      // En GET, on appelle juste l'URL directement
-      // Si vous devez passer un ID, ça se fait dans l'URL (ex: .../api/poste_piece?id=12)
-      const reponse = await fetch('http://localhost:5000/api/poste_piece');
+      // Appel avec le poste en paramètre GET
+      const reponse = await fetch(`http://localhost:5000/api/poste_piece?poste=${encodeURIComponent(selectedPoste)}`);
       
       if (reponse.ok) {
         // On récupère le texte (HTML)
@@ -474,12 +1011,143 @@ export default function App() {
         
         // On met à jour la variable qui est liée à votre DIV existant
         setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Données chargées avec succès' });
       } else {
-        console.error("Erreur serveur");
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
 
     } catch (err) {
       console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const afficherExperienceParWeekStep = async () => {
+    setLoading(true);
+
+    try {
+      const reponse = await fetch('http://localhost:5000/api/experience_week_step');
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Expérience par semaine chargée' });
+        setSelectedFile(""); // Vider la sélection fichier
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const afficherCostsParStep = async () => {
+    setLoading(true);
+
+    try {
+      const reponse = await fetch('http://localhost:5000/api/costs_by_step');
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Coûts par étape chargés' });
+        setSelectedFile(""); // Vider la sélection fichier
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const afficherWorkflowSankey = async (step, maxNodes) => {
+    setLoading(true);
+
+    try {
+      const url = new URL('http://localhost:5000/api/step_workflow');
+      if (step) {
+        url.searchParams.append('step', encodeURIComponent(step));
+      }
+      url.searchParams.append('max_nodes', maxNodes);
+      
+      const reponse = await fetch(url.toString());
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Workflow Sankey chargé' });
+        setSelectedFile("");
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const afficherRetards10min = async () => {
+    setLoading(true);
+
+    try {
+      const reponse = await fetch('http://localhost:5000/api/retards_10min');
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: 'Retards > 10 min chargés' });
+        setSelectedFile("");
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleXlsxFileClick = async (file) => {
+    setLoading(true);
+
+    try {
+      // Extraire le nom du fichier du chemin complet
+      const filename = file.name || file.url.split('/').pop();
+      
+      const reponse = await fetch(`http://localhost:5000/api/excel_table/${encodeURIComponent(filename)}`);
+      
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: `Tableau ${filename} chargé` });
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur lors du chargement du fichier' });
+      }
+
+    } catch (err) {
+      console.error("Erreur lors du chargement du fichier Excel", err);
+      setStatus({ type: 'error', message: 'Erreur lors du chargement du fichier Excel' });
     } finally {
       setLoading(false);
     }
@@ -519,7 +1187,7 @@ export default function App() {
 
       {/* Widget Chatbot */}
       <Chatbot />
-      
+
       {/* --- SIDEBAR --- */}
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
@@ -534,19 +1202,53 @@ export default function App() {
             files.map(file => (
               <div 
                 key={file.id}
-                onClick={() => {
-                  setSelectedFile(file);
-                  setContenuDiv("");
-                }}
                 className={`file-item ${selectedFile?.id === file.id ? 'selected' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
               >
-                <div className="file-icon-wrapper">
-                  {file.type.includes('image') ? <ImageIcon size={18}/> : <FileText size={18}/>}
+                <div 
+                  onClick={() => {
+                    setSelectedFile(file);
+                    setContenuDiv("");
+                    // Si c'est un fichier .xlsx, charger et afficher le tableau
+                    if (file.name.endsWith('.xlsx')) {
+                      handleXlsxFileClick(file);
+                    }
+                  }}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                >
+                  <div className="file-icon-wrapper">
+                    {file.type.includes('image') ? <ImageIcon size={18}/> : <FileText size={18}/>}
+                  </div>
+                  <div className="file-info">
+                    <p className="file-name">{file.name}</p>
+                    <p className="file-size">{file.size}</p>
+                  </div>
                 </div>
-                <div className="file-info">
-                  <p className="file-name">{file.name}</p>
-                  <p className="file-size">{file.size}</p>
-                </div>
+                <a 
+                  href={getFileUrl(file.url)} 
+                  download={file.name}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    padding: '6px 10px',
+                    marginRight: '8px',
+                    backgroundColor: '#4c6ef5',
+                    color: 'white',
+                    borderRadius: '4px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textDecoration: 'none',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    transition: 'all 0.2s',
+                    hover: { backgroundColor: '#364ec5' }
+                  }}
+                  title="Télécharger le fichier"
+                >
+                  <Download size={14} />
+                </a>
               </div>
             ))
           )}
@@ -571,18 +1273,57 @@ export default function App() {
               {selectedFile ? selectedFile.name : 'Tableau de bord'}
             </h1>
             
-            {/* Bouton Python */}
-            <div style={{ marginLeft: '15px' }}>
-                <button 
-                  onClick={() => {
-                    votreFonctionAppelBackend();
-                    setSelectedFile("");
-                  }} 
-                  className="primary-btn"
-                >
-                  Poste par pièces
-                </button>
+            {/* Boutons principaux */}
+            <div className="buttons-container">
+              <button 
+                onClick={afficherExperienceParWeekStep}
+                className="primary-btn"
+                disabled={loading}
+                style={{ backgroundColor: '#27ae60' }}
+                title="Affiche l'expérience par semaine et étape"
+              >
+                {loading ? "Chargement..." : "Expérience Week/Step"}
+              </button>
+              <button 
+                onClick={afficherCostsParStep}
+                className="primary-btn"
+                disabled={loading}
+                style={{ backgroundColor: '#e67e22' }}
+                title="Affiche les coûts par étape"
+              >
+                {loading ? "Chargement..." : "Coûts par étape"}
+              </button>
+              <button 
+                onClick={() => setShowWorkflowModal(true)}
+                className="primary-btn"
+                disabled={loading}
+                style={{ backgroundColor: '#8e44ad' }}
+                title="Affiche le workflow Sankey"
+              >
+                {loading ? "Chargement..." : "Workflow Sankey"}
+              </button>
             </div>
+
+            {/* Bouton Retards indépendant */}
+            <button 
+              onClick={afficherRetards10min}
+              className="primary-btn"
+              disabled={loading}
+              style={{ backgroundColor: '#e74c3c' }}
+              title="Affiche les retards > 10 minutes"
+            >
+              {loading ? "Chargement..." : "⚠️ Retards > 10 min"}
+            </button>
+
+            {/* Bouton pour ouvrir la sidebar */}
+            <button 
+              onClick={() => setIsQuickAccessOpen(!isQuickAccessOpen)}
+              className="primary-btn"
+              style={{ backgroundColor: '#6c757d' }}
+              title="Ouvrir l'accès rapide"
+            >
+              {isQuickAccessOpen ? "✕ Fermer" : "☰ Accès rapide"}
+            </button>
           </div>
 
           {/* PARTIE DROITE (Status + Upload) */}
@@ -619,6 +1360,31 @@ export default function App() {
           {(selectedFile || contenuDiv) ? (
             <div className="preview-card">
               
+              {/* BANNIÈRE RÉSULTAT DE L'ACTION (EN HAUT DU CONTENEUR) */}
+              {contenuDiv && (
+                <div 
+                  style={{ 
+                    width: '100%', 
+                    backgroundColor: '#e7f5ff',
+                    borderBottom: '3px solid #4c6ef5',
+                    padding: '18px 20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <h3 style={{ margin: 0, color: '#1971c2', fontSize: '1.1rem', fontWeight: 700 }}>
+                    📊 Résultat de l'action
+                  </h3>
+                  <button 
+                    onClick={() => setContenuDiv("")} 
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666', padding: '4px 8px', hover: { color: '#000' } }}
+                  >
+                    ✖
+                  </button>
+                </div>
+              )}
+              
               {/* EN-TÊTE de la Carte */}
               <div className="preview-card-header">
                   {selectedFile ? (
@@ -626,43 +1392,38 @@ export default function App() {
                         <span>ID: {selectedFile.id}</span>
                         <span className="file-type-badge">{selectedFile.type}</span>
                     </>
+                  ) : contenuDiv ? (
+                    // Si on a du contenu Python mais pas de fichier, ne rien afficher ici
+                    null
                   ) : (
-                    // Titre générique si seul le résultat Python est affiché
-                    <span>Résultat de l'action</span>
+                    // Cas par défaut
+                    <span>Aperçu</span>
                   )}
               </div>
               
               {/* CORPS : Utilise flex-column pour empiler les éléments */}
               <div className="preview-card-body" style={{ flexDirection: 'column', display: 'flex' }}>
                 
-                {/* --- 1. LE RÉSULTAT PYTHON (Toujours en haut s'il est présent) --- */}
+                {/* --- 1. LE CONTENU HTML DU RÉSULTAT PYTHON --- */}
                 {contenuDiv && (
                     <div 
-                      className="python-result-box"
                       style={{ 
                         width: '100%', 
+                        flex: 1,
                         backgroundColor: '#fff',
                         borderBottom: selectedFile ? '1px solid #eee' : 'none',
-                        padding: '20px',
-                        flexShrink: 0
+                        padding: '30px 20px 20px 20px',
+                        overflowY: 'auto',
+                        marginTop: '12px'
                       }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                            <h3 style={{ margin: 0, color: '#007bff', fontSize: '1rem' }}>Réponse du Backend</h3>
-                            <button 
-                                onClick={() => setContenuDiv("")} 
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#999' }}
-                            >
-                                ✖
-                            </button>
-                        </div>
                         {/* Injection du HTML */}
                         <div dangerouslySetInnerHTML={{ __html: contenuDiv }} />
                     </div>
                 )}
 
-                {/* --- 2. L'APERÇU DU FICHIER (S'affiche en dessous s'il est présent) --- */}
-                {selectedFile && (
+                {/* --- 2. L'APERÇU DU FICHIER (S'affiche seulement s'il n'y a pas de contenu HTML) --- */}
+                {selectedFile && !contenuDiv && (
                     <div style={{ flex: 1, padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                         {selectedFile.type.includes('image') ? (
                           <img 
@@ -703,6 +1464,103 @@ export default function App() {
             </div>
           )}
         </main>
+
+        {/* Modal Workflow */}
+        {showWorkflowModal && (
+          <div className="modal-overlay" onClick={() => setShowWorkflowModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">Configuration du Workflow Sankey</div>
+              
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Étape (optionnel - laisser vide pour toutes les étapes)</label>
+                  <select 
+                    value={workflowStep} 
+                    onChange={(e) => setWorkflowStep(e.target.value)}
+                  >
+                    <option value="">-- Toutes les étapes --</option>
+                    {postes.map((poste, index) => (
+                      <option key={index} value={poste}>{poste}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Nombre maximum de nœuds par niveau</label>
+                  <input 
+                    type="number" 
+                    min="5" 
+                    max="200" 
+                    value={workflowMaxNodes}
+                    onChange={(e) => setWorkflowMaxNodes(parseInt(e.target.value) || 50)}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  className="modal-btn modal-btn-secondary"
+                  onClick={() => setShowWorkflowModal(false)}
+                >
+                  Annuler
+                </button>
+                <button 
+                  className="modal-btn modal-btn-primary"
+                  onClick={() => {
+                    afficherWorkflowSankey(workflowStep || null, workflowMaxNodes);
+                    setShowWorkflowModal(false);
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? "Chargement..." : "Afficher"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* --- SIDEBAR DROITE - ACCÈS RAPIDE --- */}
+      <div className={`sidebar-right ${isQuickAccessOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-right-header">
+          <h2 className="sidebar-right-title">Accès rapide</h2>
+          <button 
+            onClick={() => setIsQuickAccessOpen(false)}
+            className="sidebar-close-btn"
+            title="Fermer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="sidebar-right-content">
+          {/* Sélection du poste */}
+          <div className="poste-selection-group-sidebar">
+            <label htmlFor="poste-select-sidebar">Sélectionner un poste :</label>
+            <select 
+              id="poste-select-sidebar"
+              value={selectedPoste} 
+              onChange={(e) => setSelectedPoste(e.target.value)}
+              className="poste-dropdown-sidebar"
+            >
+              <option value="">-- Sélectionner un poste --</option>
+              {postes.map((poste, index) => (
+                <option key={index} value={poste}>{poste}</option>
+              ))}
+            </select>
+            <button 
+              onClick={() => {
+                votreFonctionAppelBackend();
+                setSelectedFile("");
+              }} 
+              className="sidebar-action-btn"
+              disabled={loading || !selectedPoste}
+              title={!selectedPoste ? "Veuillez sélectionner un poste" : ""}
+            >
+              {loading ? "Chargement..." : "📊 Poste par pièces"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
