@@ -430,6 +430,34 @@ def html_retards_10min(production_chains: pd.DataFrame) -> str:
         """
  
     html += "</table>"
+    
+    # Créer un diagramme en bâtons pour les retards par poste
+    retards_by_poste = retards_grouped.groupby("Poste")["Nb_retards"].sum().reset_index()
+    retards_by_poste = retards_by_poste.sort_values("Nb_retards", ascending=True)
+    
+    fig_retards = px.bar(
+        retards_by_poste,
+        x="Nb_retards",
+        y="Poste",
+        labels={
+            "Poste": "Poste",
+            "Nb_retards": "Nombre de retards (>10 min)"
+        },
+        title="Nombre de retards par poste",
+        color="Nb_retards",
+        color_continuous_scale="Reds",
+        orientation="h"
+    )
+    fig_retards.update_layout(
+        height=max(400, len(retards_by_poste) * 50),
+        margin=dict(l=80, r=50, t=100, b=80),
+        yaxis=dict(type="category")
+    )
+    fig_retards.update_xaxes(title_text="Nombre de retards (>10 min)")
+    fig_retards.update_yaxes(title_text="Poste")
+    graph_html = fig_retards.to_html(full_html=False, include_plotlyjs="cdn")
+    
+    html += graph_html
     html += f"""
 <p style="margin-top:20px;font-size:0.9rem;color:#666;">
 <b>Résumé :</b> {len(retards_grouped)} groupes de retards détectés | Total d'occurrences : {len(retards)} retards
