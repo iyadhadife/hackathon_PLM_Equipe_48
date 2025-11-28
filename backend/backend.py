@@ -502,21 +502,54 @@ def format_result_as_human_readable(result):
 def step_workflow():
     try:
         # Récupérer les paramètres
+        from urllib.parse import unquote
         selected_step = request.args.get('step', None)
+        # Décoder l'URL pour gérer les espaces et caractères spéciaux
+        if selected_step:
+            selected_step = unquote(selected_step)
         max_nodes = request.args.get('max_nodes', 50, type=int)
         
+        print(f"\n{'='*60}")
+        print(f"🔍 WORKFLOW SANKEY - Début du traitement")
+        print(f"{'='*60}")
+        print(f"Paramètres reçus:")
+        print(f"  - Étape sélectionnée: {selected_step}")
+        print(f"  - Max nodes: {max_nodes}")
+        
         # Construire les chaînes de production
+        print(f"\n📊 Construction des chaînes de production...")
         production_chains = build_production_chains(
             'uploads/MES_Extraction.xlsx',
             'uploads/PLM_DataSet.xlsx',
             'uploads/ERP_Equipes_Airplus.xlsx'
         )
         
+        print(f"  ✓ Nombre de lignes: {len(production_chains)}")
+        print(f"  ✓ Colonnes disponibles: {list(production_chains.columns)}")
+        
+        if 'Nom' in production_chains.columns:
+            print(f"  ✓ Étapes uniques (Nom): {production_chains['Nom'].nunique()}")
+            print(f"  ✓ Exemples d'étapes: {production_chains['Nom'].dropna().unique()[:5].tolist()}")
+        
+        if 'Poste' in production_chains.columns:
+            print(f"  ✓ Postes uniques: {production_chains['Poste'].nunique()}")
+        
+        if 'Code_piece' in production_chains.columns:
+            print(f"  ✓ Pièces uniques: {production_chains['Code_piece'].nunique()}")
+        
         # Générer le HTML avec le workflow Sankey
+        print(f"\n🎨 Génération du diagramme Sankey...")
         html = html_step_workflow(production_chains, selected_step=selected_step, max_nodes_per_level=max_nodes)
+        
+        print(f"  ✓ HTML généré: {len(html)} caractères")
+        print(f"  ✓ Contient Plotly: {'plotly' in html.lower()}")
+        print(f"{'='*60}\n")
         
         return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
     except Exception as e:
+        print(f"\n❌ ERREUR dans step_workflow: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Erreur lors du traitement : {str(e)}'}), 500
 
 # --- ROUTE 9 : Retards > 10 minutes ---

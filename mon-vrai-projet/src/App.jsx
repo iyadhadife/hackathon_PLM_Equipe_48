@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download, Maximize2 } from 'lucide-react';
 import Chatbot from './components/Chatbot.jsx';
 
 // --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
@@ -744,25 +744,90 @@ body {
 .preview-area {
   flex: 1;
   background-color: #f1f3f5;
-  padding: 32px;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  position: relative;
+}
+
+.full-preview-container {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floating-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+.toolbar-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background-color: rgba(255,255,255,0.98);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #495057;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  background-color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.toolbar-btn:active {
+  transform: translateY(0);
+}
+
+.toolbar-btn.close-btn {
+  color: #e03131;
+  background-color: rgba(255,245,245,0.98);
+}
+
+.toolbar-btn.close-btn:hover {
+  background-color: #fff5f5;
+  box-shadow: 0 4px 12px rgba(224,49,49,0.25);
+}
+
+.result-full-container {
+  flex: 1;
+  width: 100%;
+  padding: 32px 48px;
+  background-color: #f8f9fa;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .preview-card {
   background-color: white;
-  width: 100%;
-  max-width: 900px;
-  height: 100%;
-  max-height: 80vh;
+  width: 90%;
+  max-width: 1000px;
+  height: 85vh;
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #dee2e6;
+  margin: auto;
 }
 
 .preview-card-header {
@@ -845,10 +910,14 @@ body {
 }
 
 .empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   text-align: center;
   color: #adb5bd;
-  /* Correction: Assurer que l'état vide est bien centré et visible */
-  padding: 50px; 
+  padding: 40px;
 }
 
 .empty-placeholder h3 {
@@ -870,8 +939,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
-  color: #fff;
+  margin-bottom: 20px;
+  color: #868e96;
 }
 `;
 
@@ -935,6 +1004,43 @@ body {
 //     </div>
 //   );
 // }
+
+// Composant pour afficher correctement les graphiques Plotly
+const PlotlyRenderer = ({ htmlContent }) => {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (containerRef.current && htmlContent) {
+      // Vider le conteneur
+      containerRef.current.innerHTML = htmlContent;
+
+      // Exécuter les scripts contenus dans le HTML
+      const scripts = containerRef.current.querySelectorAll('script');
+      scripts.forEach((oldScript) => {
+        const newScript = document.createElement('script');
+        
+        // Copier tous les attributs
+        Array.from(oldScript.attributes).forEach((attr) => {
+          newScript.setAttribute(attr.name, attr.value);
+        });
+        
+        // Copier le contenu
+        newScript.textContent = oldScript.textContent;
+        
+        // Remplacer l'ancien script par le nouveau
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+    }
+  }, [htmlContent]);
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="python-result-content"
+      style={{ width: '100%', minHeight: '500px' }}
+    />
+  );
+};
 
 export default function App() {
   const [files, setFiles] = useState([]);
@@ -1083,20 +1189,38 @@ export default function App() {
       }
       url.searchParams.append('max_nodes', maxNodes);
       
+      console.log('🔍 Appel Workflow Sankey:', {
+        step: step || 'Toutes',
+        maxNodes,
+        url: url.toString()
+      });
+      
       const reponse = await fetch(url.toString());
+      
+      console.log('📥 Réponse reçue:', {
+        status: reponse.status,
+        contentType: reponse.headers.get('content-type')
+      });
       
       if (reponse.ok) {
         const htmlRecu = await reponse.text();
+        console.log('✅ HTML reçu:', {
+          length: htmlRecu.length,
+          containsPlotly: htmlRecu.includes('plotly'),
+          containsDiv: htmlRecu.includes('<div'),
+          preview: htmlRecu.substring(0, 200)
+        });
         setContenuDiv(htmlRecu);
         setStatus({ type: 'success', message: 'Workflow Sankey chargé' });
         setSelectedFile("");
       } else {
         const errorData = await reponse.json();
+        console.error('❌ Erreur serveur:', errorData);
         setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
 
     } catch (err) {
-      console.error("Le backend est injoignable", err);
+      console.error("❌ Le backend est injoignable", err);
       setStatus({ type: 'error', message: 'Le backend est injoignable' });
     } finally {
       setLoading(false);
@@ -1353,105 +1477,90 @@ export default function App() {
           
         </header>
 
-        {/* ZONE DE PRÉVISUALISATION (Logique Corrigée) */}
+        {/* ZONE DE PRÉVISUALISATION (Plein écran optimisé) */}
         <main className="preview-area">
           
-          {/* CONDITION PRINCIPALE : Afficher la carte si un fichier OU du contenu Python est là */}
+          {/* CONDITION PRINCIPALE : Afficher le contenu si un fichier OU du contenu Python est là */}
           {(selectedFile || contenuDiv) ? (
-            <div className="preview-card">
+            <div className="full-preview-container">
               
-              {/* BANNIÈRE RÉSULTAT DE L'ACTION (EN HAUT DU CONTENEUR) */}
+              {/* Barre d'outils flottante pour les résultats Python */}
               {contenuDiv && (
-                <div 
-                  style={{ 
-                    width: '100%', 
-                    backgroundColor: '#e7f5ff',
-                    borderBottom: '3px solid #4c6ef5',
-                    padding: '18px 20px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <h3 style={{ margin: 0, color: '#1971c2', fontSize: '1.1rem', fontWeight: 700 }}>
-                    📊 Résultat de l'action
-                  </h3>
+                <div className="floating-toolbar">
                   <button 
-                    onClick={() => setContenuDiv("")} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666', padding: '4px 8px', hover: { color: '#000' } }}
+                    className="toolbar-btn"
+                    onClick={() => {
+                      const elem = document.querySelector('.full-preview-container');
+                      if (elem.requestFullscreen) {
+                        elem.requestFullscreen();
+                      } else if (elem.webkitRequestFullscreen) {
+                        elem.webkitRequestFullscreen();
+                      } else if (elem.msRequestFullscreen) {
+                        elem.msRequestFullscreen();
+                      }
+                    }}
+                    title="Mode plein écran"
                   >
-                    ✖
+                    <Maximize2 size={18} />
+                    <span>Plein écran</span>
+                  </button>
+                  <button 
+                    className="toolbar-btn close-btn"
+                    onClick={() => setContenuDiv("")}
+                    title="Fermer"
+                  >
+                    <X size={18} />
+                    <span>Fermer</span>
                   </button>
                 </div>
               )}
               
-              {/* EN-TÊTE de la Carte */}
-              <div className="preview-card-header">
-                  {selectedFile ? (
-                    <>
-                        <span>ID: {selectedFile.id}</span>
-                        <span className="file-type-badge">{selectedFile.type}</span>
-                    </>
-                  ) : contenuDiv ? (
-                    // Si on a du contenu Python mais pas de fichier, ne rien afficher ici
-                    null
-                  ) : (
-                    // Cas par défaut
-                    <span>Aperçu</span>
-                  )}
-              </div>
-              
-              {/* CORPS : Utilise flex-column pour empiler les éléments */}
-              <div className="preview-card-body" style={{ flexDirection: 'column', display: 'flex' }}>
-                
-                {/* --- 1. LE CONTENU HTML DU RÉSULTAT PYTHON --- */}
-                {contenuDiv && (
-                    <div 
-                      style={{ 
-                        width: '100%', 
-                        flex: 1,
-                        backgroundColor: '#fff',
-                        borderBottom: selectedFile ? '1px solid #eee' : 'none',
-                        padding: '30px 20px 20px 20px',
-                        overflowY: 'auto',
-                        marginTop: '12px'
-                      }}
-                    >
-                        {/* Injection du HTML */}
-                        <div dangerouslySetInnerHTML={{ __html: contenuDiv }} />
-                    </div>
-                )}
+              {/* --- 1. LE CONTENU HTML DU RÉSULTAT PYTHON --- */}
+              {contenuDiv && (
+                <div className="result-full-container">
+                  {/* Injection du HTML avec style amélioré */}
+                  <PlotlyRenderer htmlContent={contenuDiv} />
+                </div>
+              )}
 
-                {/* --- 2. L'APERÇU DU FICHIER (S'affiche seulement s'il n'y a pas de contenu HTML) --- */}
-                {selectedFile && !contenuDiv && (
-                    <div style={{ flex: 1, padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-                        {selectedFile.type.includes('image') ? (
-                          <img 
-                            src={getFileUrl(selectedFile.url)} 
-                            alt="Preview" 
-                            className="preview-image" 
-                          />
-                        ) : (
-                          <div className="no-preview-box">
-                            <div className="icon-circle">
-                              <FileText size={40} />
-                            </div>
-                            <h3>{selectedFile.name}</h3>
-                            <p>L'aperçu n'est pas disponible.</p>
-                            <a 
-                              href={getFileUrl(selectedFile.url)} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="link-btn"
-                            >
-                              Ouvrir le fichier
-                            </a>
-                          </div>
-                        )}
-                    </div>
-                )}
+              {/* --- 2. L'APERÇU DU FICHIER (S'affiche seulement s'il n'y a pas de contenu HTML) --- */}
+              {selectedFile && !contenuDiv && (
+                <div className="preview-card">
+                  {/* EN-TÊTE de la Carte */}
+                  <div className="preview-card-header">
+                    <span>ID: {selectedFile.id}</span>
+                    <span className="file-type-badge">{selectedFile.type}</span>
+                  </div>
+                  
+                  {/* CORPS */}
+                  <div className="preview-card-body">
+                    {selectedFile.type.includes('image') ? (
+                      <img 
+                        src={getFileUrl(selectedFile.url)} 
+                        alt="Preview" 
+                        className="preview-image" 
+                      />
+                    ) : (
+                      <div className="no-preview-box">
+                        <div className="icon-circle">
+                          <FileText size={40} />
+                        </div>
+                        <h3>{selectedFile.name}</h3>
+                        <p>L'aperçu n'est pas disponible.</p>
+                        <a 
+                          href={getFileUrl(selectedFile.url)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="link-btn"
+                        >
+                          Ouvrir le fichier
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-              </div>
             </div>
           ) : (
             // --- CAS VIDE : Si selectedFile est null ET contenuDiv est vide ---

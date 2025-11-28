@@ -223,25 +223,108 @@ body {
 .preview-area {
   flex: 1;
   background-color: #f1f3f5;
-  padding: 32px;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
 }
 
+/* Conteneur plein écran pour les résultats */
+.full-preview-container {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Barre d'outils flottante */
+.floating-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background-color: rgba(255,255,255,0.98);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #495057;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+  background-color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.toolbar-btn:active {
+  transform: translateY(0);
+}
+
+.toolbar-btn.close-btn {
+  color: #e03131;
+  background-color: rgba(255,245,245,0.98);
+}
+
+.toolbar-btn.close-btn:hover {
+  background-color: #fff5f5;
+  box-shadow: 0 4px 12px rgba(224,49,49,0.25);
+}
+
+/* Conteneur de résultat plein écran */
+.result-full-container {
+  flex: 1;
+  width: 100%;
+  padding: 32px 48px;
+  background-color: #f8f9fa;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Mode plein écran natif */
+.full-preview-container:fullscreen {
+  background-color: white;
+}
+
+.full-preview-container:fullscreen .result-full-container {
+  padding: 40px 60px;
+}
+
+.full-preview-container:fullscreen .floating-toolbar {
+  position: sticky;
+  top: 0;
+}
+
+/* Carte pour l'aperçu de fichiers (conservée pour les previews) */
 .preview-card {
   background-color: white;
-  width: 100%;
-  max-width: 900px;
-  height: 100%;
-  max-height: 80vh;
+  width: 90%;
+  max-width: 1000px;
+  height: 85vh;
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #dee2e6;
+  margin: auto;
 }
 
 .preview-card-header {
@@ -325,8 +408,14 @@ body {
 }
 
 .empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   text-align: center;
   color: #adb5bd;
+  padding: 40px;
 }
 
 .empty-icon-circle {
@@ -337,6 +426,162 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
-  color: #fff;
+  margin-bottom: 20px;
+  color: #868e96;
+}
+
+/* --- STYLES POUR LES RÉSULTATS D'ACTION PYTHON --- */
+.result-container {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.python-result-content {
+  /* Style global pour le contenu injecté */
+  line-height: 1.6;
+  color: #2c3e50;
+}
+
+/* Améliorer l'affichage des tableaux générés par Python */
+.python-result-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.python-result-content table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.python-result-content table th {
+  padding: 14px 12px;
+  text-align: left;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+.python-result-content table td {
+  padding: 12px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.python-result-content table tbody tr:hover {
+  background-color: #f8f9fa;
+  transition: background-color 0.2s;
+}
+
+.python-result-content table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Style pour les titres H2 et H3 */
+.python-result-content h2 {
+  color: #2c3e50;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #667eea;
+}
+
+.python-result-content h3 {
+  color: #495057;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 30px;
+  margin-bottom: 15px;
+}
+
+/* Style pour les graphiques Plotly */
+.python-result-content .plotly,
+.python-result-content .js-plotly-plot,
+.python-result-content .plotly-graph-div {
+  margin: 20px 0;
+  border-radius: 8px;
+  overflow: visible !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  width: 100% !important;
+  min-height: 700px;
+  background: white;
+}
+
+/* S'assurer que les divs Plotly prennent toute la largeur */
+.python-result-content > div {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Forcer Plotly à prendre toute la largeur disponible */
+.python-result-content .plot-container,
+.python-result-content .svg-container {
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* Style pour les messages d'erreur/avertissement */
+.python-result-content > div[style*="background:#fff3cd"],
+.python-result-content > div[style*="background:#f8d7da"] {
+  border-radius: 10px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Boîtes d'information/alerte */
+.python-result-content > div[style*="background"] {
+  border-radius: 10px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Améliorer les paragraphes */
+.python-result-content p {
+  margin: 12px 0;
+  line-height: 1.7;
+}
+
+/* Style pour les listes */
+.python-result-content ul,
+.python-result-content ol {
+  margin: 15px 0;
+  padding-left: 30px;
+}
+
+.python-result-content li {
+  margin: 8px 0;
+}
+
+/* Améliorer le scrollbar pour webkit */
+.result-container::-webkit-scrollbar {
+  width: 10px;
+}
+
+.result-container::-webkit-scrollbar-track {
+  background: #f1f3f5;
+  border-radius: 10px;
+}
+
+.result-container::-webkit-scrollbar-thumb {
+  background: #adb5bd;
+  border-radius: 10px;
+}
+
+.result-container::-webkit-scrollbar-thumb:hover {
+  background: #868e96;
 }

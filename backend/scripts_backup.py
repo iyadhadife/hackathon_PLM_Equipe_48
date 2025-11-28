@@ -1320,7 +1320,7 @@ def html_costs_by_step(mes: pd.DataFrame,
         Colonnes attendues (noms à adapter si besoin) :
         - 'Nom' ou 'Nom_operation' : étape de production
         - 'Référence' : références pièces (séparées par ';')
-        - 'Temps Prévu' : durée prévue (datetime.time ou 'HH:MM:SS') [OPTIONNEL]
+        - 'Temps Prévu' : durée prévue (datetime.time ou 'HH:MM:SS')
         - 'Poste' : numéro de poste
  
     plm : DataFrame (PLM_DataSet)
@@ -1349,12 +1349,6 @@ def html_costs_by_step(mes: pd.DataFrame,
         step_col = "Nom_operation"
     else:
         return "<p>Impossible de trouver la colonne 'Nom' (ou 'Nom_operation') dans MES.</p>"
-    
-    # Vérifier la présence de 'Temps Prévu' dès le début
-    has_temps_prevu = "Temps Prévu" in mes.columns
-    
-    # Vérifier la présence de 'Temps Prévu' dès le début
-    has_temps_prevu = "Temps Prévu" in mes.columns
  
     # ======================================================
     # 2) PARTIE PIECES (matière) : MES + PLM
@@ -1419,25 +1413,16 @@ def html_costs_by_step(mes: pd.DataFrame,
         except Exception:
             return pd.NaT
  
-    # Calculer les temps seulement si la colonne existe
-    if has_temps_prevu:
-        mes_time = mes[[step_col, "Temps Prévu"]].copy()
-        mes_time["Temps_Prevu_td"] = mes_time["Temps Prévu"].apply(time_to_timedelta)
-     
-        time_by_step = (
-            mes_time
-            .groupby(step_col)["Temps_Prevu_td"]
-            .sum()
-            .reset_index()
-        )
-        time_by_step["Temps_prevu_heures"] = time_by_step["Temps_Prevu_td"].dt.total_seconds() / 3600
-    else:
-        # Créer un DataFrame vide si pas de temps prévu
-        time_by_step = pd.DataFrame({
-            step_col: [],
-            "Temps_Prevu_td": pd.Series([], dtype='timedelta64[ns]'),
-            "Temps_prevu_heures": []
-        })
+    mes_time = mes[[step_col, "Temps Prévu"]].copy()
+    mes_time["Temps_Prevu_td"] = mes_time["Temps Prévu"].apply(time_to_timedelta)
+ 
+    time_by_step = (
+        mes_time
+        .groupby(step_col)["Temps_Prevu_td"]
+        .sum()
+        .reset_index()
+    )
+    time_by_step["Temps_prevu_heures"] = time_by_step["Temps_Prevu_td"].dt.total_seconds() / 3600
 
     # 4) MAIN-D'ŒUVRE : MES + ERP (via Poste & Coût horaire)
     # ======================================================
@@ -1481,25 +1466,20 @@ def html_costs_by_step(mes: pd.DataFrame,
     mes_emp["Poste"] = pd.to_numeric(mes_emp["Poste"], errors="coerce").astype("Int64")
     erp_long["Poste"] = pd.to_numeric(erp_long["Poste"], errors="coerce").astype("Int64")
  
-    # Construire cols_emp seulement avec les colonnes qui existent dans erp_long
-    cols_to_merge_from_erp = ["Poste"]
-    if hour_col is not None and hour_col in erp_long.columns:
-        cols_to_merge_from_erp.append(hour_col)
-    if "Nom_personne" in erp_long.columns:
-        cols_to_merge_from_erp.append("Nom_personne")
+    cols_emp = [step_col, "Poste", "Temps Prévu"]
+    if hour_col is not None:
+        cols_emp.append(hour_col)
+    cols_emp.append("Nom_personne")
  
     mes_emp = mes_emp.merge(
-        erp_long[cols_to_merge_from_erp],
+        erp_long[cols_emp],
         on="Poste",
         how="left",
         suffixes=("", "_ERP")
     )
  
-    # Conversion Temps Prévu seulement s'il existe
-    if has_temps_prevu:
-        mes_emp["Temps_Prevu_td"] = mes_emp["Temps Prévu"].apply(time_to_timedelta)
-    else:
-        mes_emp["Temps_Prevu_td"] = pd.NaT
+    # Conversion Temps Prévu
+    mes_emp["Temps_Prevu_td"] = mes_emp["Temps Prévu"].apply(time_to_timedelta)
  
     # Conversion coût horaire
     if hour_col is not None and hour_col in mes_emp.columns:
@@ -1677,39 +1657,25 @@ def html_step_workflow(
         Code HTML du graf Sankey (fig.to_html)
     """
  
-    print(f"    → html_step_workflow() appelé")
-    print(f"      - DataFrame shape: {production_chains.shape}")
-    print(f"      - Selected step: {selected_step}")
-    print(f"      - Max nodes: {max_nodes_per_level}")
-    
     df = production_chains.copy()
  
     # 1) Choix de la colonne d'étape
     if "Nom" in df.columns:
         step_col = "Nom"
-        print(f"      - Utilisation de la colonne 'Nom'")
     elif "Nom_operation" in df.columns:
         step_col = "Nom_operation"
-        print(f"      - Utilisation de la colonne 'Nom_operation'")
     else:
-        print(f"      ❌ Aucune colonne 'Nom' ou 'Nom_operation' trouvée")
         return "<p>Impossible de trouver la colonne 'Nom' (ou 'Nom_operation').</p>"
  
     # 2) Filtre sur une étape si demandé
     if selected_step is not None:
-        print(f"      - Filtrage sur l'étape: '{selected_step}'")
         df = df[df[step_col].astype(str) == str(selected_step)]
-        print(f"      - Lignes après filtrage: {len(df)}")
         if df.empty:
-            print(f"      ❌ Aucune ligne trouvée pour l'étape '{selected_step}'")
             return f"<p>Aucune donnée pour l'étape : {selected_step}</p>"
  
     # 3) On garde uniquement les lignes complètes
-    print(f"      - Avant dropna: {len(df)} lignes")
     df = df.dropna(subset=[step_col, "Poste", "Code_piece"])
-    print(f"      - Après dropna: {len(df)} lignes")
     if df.empty:
-        print(f"      ❌ DataFrame vide après dropna")
         return "<p>Aucune donnée à afficher après filtrage.</p>"
  
     # ======================
@@ -1810,80 +1776,25 @@ def html_step_workflow(
             targets.append(idx_piece[piece])
             values.append(row["val"])
  
-    print(f"      - Nombre de liens créés: {len(sources)}")
-    print(f"      - Nombre de nodes: {len(labels)}")
-    
     if not sources:
-        print(f"      ❌ Aucun lien créé - impossibilité de générer le Sankey")
-        return f"""
-<div style="padding:40px;text-align:center;background:#fff3cd;border-radius:10px;margin:20px;">
-    <h3 style="color:#856404;">⚠️ Aucun lien à afficher</h3>
-    <p>Il n'y a pas de données suffisantes pour générer le diagramme Sankey.</p>
-    <p><strong>Étape sélectionnée :</strong> {selected_step if selected_step else "Toutes"}</p>
-    <p><strong>Nombre de labels :</strong> {len(labels)}</p>
-    <p><strong>Sources/Targets :</strong> Vides</p>
-    <p style="margin-top:20px;color:#666;">
-        Vérifiez que les données MES/PLM/ERP contiennent les colonnes requises :
-        <br/><strong>Poste</strong>, <strong>Code_piece</strong>, <strong>Nom</strong>
-    </p>
-</div>
-        """
+        return "<p>Pas de liens à afficher (sources/targets vides).</p>"
  
     # ======================
     # 7. Création de la figure Plotly
     # ======================
  
-    try:
-        print(f"      - Création de la figure Plotly...")
-        link = dict(source=sources, target=targets, value=values)
-        node = dict(label=labels, pad=15, thickness=15)
-     
-        titre = "🔄 Workflow Étape (Nom MES) → Poste → Pièce"
-        if selected_step is not None:
-            titre += f" — {selected_step}"
-     
-        fig = go.Figure(data=[go.Sankey(node=node, link=link)])
-        fig.update_layout(
-            title_text=titre, 
-            font_size=10,
-            height=700,
-            margin=dict(l=20, r=20, t=60, b=20)
-        )
-     
-        print(f"      ✓ Figure créée avec succès")
-        
-        # Retour HTML (sans <html><body>, juste le bloc graphique)
-        html = fig.to_html(full_html=False, include_plotlyjs="cdn")
-        
-        print(f"      ✓ HTML généré: {len(html)} caractères")
-        
-        # Ajouter des informations de debug en commentaire
-        html = f"""
-<!-- Sankey Debug Info:
-- Nombre de nodes: {len(labels)}
-- Nombre de links: {len(sources)}
-- Étape sélectionnée: {selected_step if selected_step else "Toutes"}
--->
-{html}
-        """
-        
-        return html
-    except Exception as e:
-        return f"""
-<div style="padding:40px;text-align:center;background:#f8d7da;border-radius:10px;margin:20px;">
-    <h3 style="color:#721c24;">❌ Erreur lors de la génération du Sankey</h3>
-    <p><strong>Message d'erreur :</strong> {str(e)}</p>
-    <p><strong>Nodes :</strong> {len(labels)}</p>
-    <p><strong>Links :</strong> {len(sources)}</p>
-    <details style="margin-top:20px;text-align:left;">
-        <summary>Détails techniques</summary>
-        <pre style="background:#f5f5f5;padding:10px;border-radius:5px;overflow:auto;">
-Sources: {sources[:10]}...
-Targets: {targets[:10]}...
-Values: {values[:10]}...
-Labels: {labels[:10]}...
-        </pre>
-    </details>
-</div>
-        """
+    link = dict(source=sources, target=targets, value=values)
+    node = dict(label=labels, pad=15, thickness=15)
+ 
+    titre = "Workflow Étape (Nom MES) → Poste → Pièce"
+    if selected_step is not None:
+        titre += f" — {selected_step}"
+ 
+    fig = go.Figure(data=[go.Sankey(node=node, link=link)])
+    fig.update_layout(title_text=titre, font_size=10)
+ 
+    # Retour HTML (sans <html><body>, juste le bloc graphique)
+    html = fig.to_html(full_html=False, include_plotlyjs="cdn")
+ 
+    return html
 
