@@ -304,9 +304,8 @@ def html_etape_postes_employes(production_chains: pd.DataFrame, etape: str | Non
  
 def html_retards_10min(production_chains: pd.DataFrame) -> str:
     """
-    Retourne un tableau HTML avec toutes les lignes où
-    (Temps Réel - Temps Prévu) > 10 minutes.
-    Les valeurs sont affichées en rouge.
+    Retourne un tableau HTML avec tous les retards > 10 minutes
+    groupés par Poste, Nom et Référence.
     Retourne : string HTML
     """
  
@@ -344,45 +343,58 @@ def html_retards_10min(production_chains: pd.DataFrame) -> str:
     if retards.empty:
         return "<p>Aucun retard supérieur à 10 minutes.</p>"
  
-    # Colonnes utiles
-    cols = ["Poste", "Nom", "Temps Prévu", "Temps Réel", "Ecart_min", "Référence"]
-    cols = [c for c in cols if c in retards.columns]
-    retards = retards[cols]
- 
-    # Tri par poste puis par retard
-    retards = (
+    # Groupby par Poste et Nom avec agrégations
+    groupe_cols = ["Poste", "Nom"]
+    
+    retards_grouped = (
         retards
-        .sort_values(["Poste", "Ecart_min"], ascending=[True, False])
+        .groupby(groupe_cols, as_index=False)
+        .agg({
+            "Ecart_min": ["count", "mean", "max", "min"],  # Nombre de retards, moyenne, max, min
+            "Temps Prévu": "first",  # Afficher un exemple
+            "Temps Réel": "first"
+        })
         .reset_index(drop=True)
     )
+    
+    # Aplatir les colonnes multi-niveaux
+    retards_grouped.columns = ['Poste', 'Nom', 'Nb_retards', 'Ecart_moyen', 'Ecart_max', 'Ecart_min', 'Temps_Prevu_ex', 'Temps_Reel_ex']
  
-    # Construction HTML manuelle (rouge)
+    # Tri par Poste puis par écart moyen décroissant
+    retards_grouped = retards_grouped.sort_values(['Poste', 'Ecart_moyen'], ascending=[True, False])
+ 
+    # Construction HTML
     html = """
-<h2 style="color:red;">Postes avec un retard supérieur à 10 minutes</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-<tr style="background-color:#ffe5e5;font-weight:bold;text-align:center;">
+<h2 style="color:red;">Retards supérieurs à 10 minutes - Groupés par Poste et Opération</h2>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; font-family: Arial; width: 100%;">
+<tr style="background-color:#ffe5e5;font-weight:bold;text-align:center;color:#cc0000;">
 <td>Poste</td>
 <td>Opération</td>
-<td>Temps prévu</td>
-<td>Temps réel</td>
-<td>Écart (min)</td>
-<td>Références</td>
+<td>Nb retards</td>
+<td>Écart moyen (min)</td>
+<td>Écart max (min)</td>
+<td>Écart min (min)</td>
 </tr>
     """
  
-    for _, row in retards.iterrows():
+    for _, row in retards_grouped.iterrows():
         html += f"""
 <tr style="color:red;">
 <td><b>{row['Poste']}</b></td>
 <td>{row['Nom']}</td>
-<td>{row['Temps Prévu']}</td>
-<td>{row['Temps Réel']}</td>
-<td><b>{row['Ecart_min']:.1f}</b></td>
-<td>{row.get('Référence', '')}</td>
+<td style="text-align:center;font-weight:bold;">{int(row['Nb_retards'])}</td>
+<td style="text-align:center;"><b>{row['Ecart_moyen']:.1f}</b></td>
+<td style="text-align:center;">{row['Ecart_max']:.1f}</td>
+<td style="text-align:center;">{row['Ecart_min']:.1f}</td>
 </tr>
         """
  
     html += "</table>"
+    html += f"""
+<p style="margin-top:20px;font-size:0.9rem;color:#666;">
+<b>Résumé :</b> {len(retards_grouped)} groupes de retards détectés | Total d'occurrences : {len(retards)} retards
+</p>
+    """
  
     return html
 
