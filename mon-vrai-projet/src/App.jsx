@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Menu, CheckCircle, AlertCircle, X, Download, Maximize2, Minimize2 } from 'lucide-react';
 import Chatbot from './components/Chatbot.jsx';
 
-// --- CORRECTION : IMPORTATION DU SERVICE API (Ajout de .js pour la résolution du chemin) ---
+// --- IMPORTATION DU SERVICE API ---
 import { fetchFilesFromApi, uploadFileToApi, getFileUrl } from './services/api.js';
 
-// Styles CSS intégrés pour garantir le fonctionnement en un seul fichier
+// Styles CSS intégrés
 const cssStyles = `
 /* --- RESET & GLOBAL --- */
 * {
@@ -38,7 +38,7 @@ body {
   flex-direction: column;
   transition: width 0.3s ease, padding 0.3s ease;
   flex-shrink: 0;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); /* Ajout d'une légère ombre */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar.closed {
@@ -48,7 +48,7 @@ body {
   box-shadow: none;
 }
 
-/* --- SIDEBAR DROITE - ACCÈS RAPIDE --- */
+/* --- SIDEBAR DROITE --- */
 .sidebar-right {
   width: 350px;
   background-color: #ffffff;
@@ -189,7 +189,7 @@ body {
 
 .sidebar-title {
   font-weight: 700;
-  color: #4c6ef5; /* Indigo */
+  color: #4c6ef5;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -224,12 +224,12 @@ body {
   margin-bottom: 6px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s; /* Transition sur tous les éléments */
+  transition: all 0.2s;
   border: 1px solid transparent;
 }
 
 .file-item:hover {
-  background-color: #f1f3f5; /* Légère couleur au survol */
+  background-color: #f1f3f5;
   border-color: #e9ecef;
 }
 
@@ -244,7 +244,6 @@ body {
   color: #868e96;
   display: flex;
   align-items: center;
-  /* Correction: Assurer la taille et la couleur de l'icone */
   padding: 8px;
   border-radius: 6px;
   background-color: #f1f3f5;
@@ -257,7 +256,7 @@ body {
 
 .file-info {
   flex: 1;
-  min-width: 0; /* Important pour le text-overflow */
+  min-width: 0;
 }
 
 .file-name {
@@ -295,7 +294,7 @@ body {
   flex-direction: column;
   justify-content: center;
   padding: 16px 24px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Légère ombre */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   z-index: 10;
 }
 
@@ -358,7 +357,7 @@ body {
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(76, 110, 245, 0.3); /* Ajout d'une ombre bleue */
+  box-shadow: 0 2px 4px rgba(76, 110, 245, 0.3);
 }
 
 .primary-btn:hover {
@@ -393,7 +392,7 @@ body {
 }
 
 .primary-btn:active {
-  transform: translateY(1px); /* Effet de clic */
+  transform: translateY(1px);
   box-shadow: none;
 }
 
@@ -493,13 +492,7 @@ body {
   background-color: #dee2e6;
 }
 
-/* Quick Access Section - Volet Déroulant */
-.quick-access-section {
-  margin-top: 16px;
-  border-top: 1px solid #e9ecef;
-  padding-top: 12px;
-}
-
+/* Quick Access Section */
 .quick-access-toggle {
   width: 100%;
   display: flex;
@@ -520,224 +513,12 @@ body {
   border-color: #4c6ef5;
 }
 
-.quick-access-toggle .arrow {
-  display: inline-block;
-  transition: transform 0.3s ease;
-  font-size: 0.8rem;
-}
-
-.quick-access-toggle .arrow.open {
-  transform: rotate(180deg);
-}
-
-.quick-access-panel {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.quick-access-btn {
-  padding: 8px 14px;
-  background-color: #fff5f5;
-  color: #c92a2a;
-  border: 1px solid #ffa8a8;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-  font-size: 0.9rem;
-}
-
-.quick-access-btn:hover {
-  background-color: #ffe3e3;
-  border-color: #ff8787;
-  box-shadow: 0 2px 8px rgba(201, 42, 42, 0.2);
-}
-
-.quick-access-btn:disabled {
-  background-color: #adb5bd;
-  color: white;
-  border-color: #adb5bd;
-  cursor: not-allowed;
-}
-
-.quick-access-btn:active {
-  transform: translateY(1px);
-}
-
 /* Boutons Container */
 .buttons-container {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   align-items: center;
-}
-
-/* Poste Selection Group */
-.poste-selection-group {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #dee2e6;
-  margin-bottom: 12px;
-}
-
-.poste-selection-group label {
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.95rem;
-  margin: 0;
-  white-space: nowrap;
-}
-
-.poste-dropdown-inline {
-  padding: 8px 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background-color: white;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex: 1;
-  min-width: 200px;
-}
-
-.poste-dropdown-inline:hover {
-  border-color: #4c6ef5;
-  background-color: #f8f9fa;
-}
-
-.poste-dropdown-inline:focus {
-  outline: none;
-  border-color: #4c6ef5;
-  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
-}
-
-.poste-btn {
-  background-color: #e3f2fd;
-  color: #1976d2;
-  border: 1px solid #90caf9;
-  white-space: nowrap;
-}
-
-.poste-btn:hover {
-  background-color: #bbdefb;
-  border-color: #64b5f6;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
-}
-
-.poste-btn:disabled {
-  background-color: #adb5bd;
-  color: white;
-  border-color: #adb5bd;
-  cursor: not-allowed;
-}
-
-/* Quick Access Content */
-.quick-access-content {
-  padding: 12px 0;
-}
-
-/* Quick Actions Group */
-.quick-actions-group {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.delays-btn {
-  background-color: #fff5f5;
-  color: #c92a2a;
-  border: 1px solid #ffa8a8;
-}
-
-.delays-btn:hover {
-  background-color: #ffe3e3;
-  border-color: #ff8787;
-  box-shadow: 0 2px 8px rgba(201, 42, 42, 0.2);
-}
-
-.delays-btn:disabled {
-  background-color: #adb5bd;
-  color: white;
-  border-color: #adb5bd;
-  cursor: not-allowed;
-}
-
-/* Quick Access Footer */
-.quick-access-footer {
-  display: flex;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #dee2e6;
-  margin-top: 12px;
-}
-
-.close-btn {
-  background-color: #f1f3f5;
-  color: #495057;
-  border: 1px solid #dee2e6;
-  flex: 1;
-  margin-left: auto;
-}
-
-.close-btn:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.close-btn:active {
-  transform: translateY(1px);
-}
-
-.poste-selector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: 15px;
-}
-
-.poste-dropdown {
-  padding: 8px 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background-color: white;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 250px;
-}
-
-.poste-dropdown:hover {
-  border-color: #4c6ef5;
-  background-color: #f8f9fa;
-}
-
-.poste-dropdown:focus {
-  outline: none;
-  border-color: #4c6ef5;
-  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
 }
 
 /* PREVIEW AREA */
@@ -789,7 +570,6 @@ body {
   display: flex;
   flex-direction: column;
   background-color: #f8f9fa;
-  /* Pattern subtil */
   background-image: radial-gradient(#dee2e6 1px, transparent 1px);
   background-size: 20px 20px;
 }
@@ -847,19 +627,18 @@ body {
 .empty-placeholder {
   text-align: center;
   color: #adb5bd;
-  /* Correction: Assurer que l'état vide est bien centré et visible */
   padding: 50px; 
 }
 
 .empty-placeholder h3 {
-    margin-top: 10px;
-    font-size: 1.25rem;
-    color: #495057;
+  margin-top: 10px;
+  font-size: 1.25rem;
+  color: #495057;
 }
 
 .empty-placeholder p {
-    font-size: 0.9rem;
-    margin-top: 5px;
+  font-size: 0.9rem;
+  margin-top: 5px;
 }
 
 .empty-icon-circle {
@@ -875,67 +654,6 @@ body {
 }
 `;
 
-// import { useState } from 'react';
-
-// export default function MonBouton() {
-//   // Stocke le HTML reçu du Python
-//   const [contenuHtml, setContenuHtml] = useState(null);
-//   const [chargement, setChargement] = useState(false);
-
-//   const appelBackend = async () => {
-//     setChargement(true);
-//     try {
-//       // Remplacez l'URL par la vôtre
-//       const reponse = await fetch('http://localhost:5000/api/poste_piece');
-      
-//       if (!reponse.ok) {
-//         throw new Error('Erreur réseau');
-//       }
-
-//       // 1. On récupère le texte brut (le HTML)
-//       const htmlRecu = await reponse.text();
-//       setContenuHtml(htmlRecu);
-
-//     } catch (erreur) {
-//       console.error("Erreur:", erreur);
-//       alert("Impossible de contacter le backend Python");
-//     } finally {
-//       setChargement(false);
-//     }
-//   };
-
-//   return (
-//     <div style={{ padding: '20px' }}>
-      
-//       {/* LE BOUTON */}
-//       <button 
-//         onClick={appelBackend}
-//         disabled={chargement}
-//         style={{
-//           padding: '10px 20px',
-//           fontSize: '16px',
-//           backgroundColor: '#007bff',
-//           color: 'white',
-//           border: 'none',
-//           borderRadius: '5px',
-//           cursor: 'pointer'
-//         }}
-//       >
-//         {chargement ? 'Chargement...' : 'Récupérer le HTML'}
-//       </button>
-
-//       {/* L'AFFICHAGE DU HTML */}
-//       {contenuHtml && (
-//         <div 
-//           style={{ marginTop: '20px', border: '1px solid #ddd', padding: '15px' }}
-//           // 2. C'est ici qu'on injecte le HTML brut
-//           dangerouslySetInnerHTML={{ __html: contenuHtml }}
-//         />
-//       )}
-//     </div>
-//   );
-// }
-
 export default function App() {
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -949,6 +667,7 @@ export default function App() {
   const [workflowStep, setWorkflowStep] = useState("");
   const [workflowMaxNodes, setWorkflowMaxNodes] = useState(50);
   const [isQuickAccessOpen, setIsQuickAccessOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Liste des postes disponibles
   const postes = [
@@ -978,45 +697,34 @@ export default function App() {
   ];
 
   useEffect(() => {
-    loadFiles(); // Utilisation de la nouvelle fonction loadFiles
+    loadFiles();
   }, []);
 
-  // Fonction wrapper pour charger les fichiers via le service
   const loadFiles = async () => {
     try {
-      const data = await fetchFilesFromApi(); // APPEL AU SERVICE API
+      const data = await fetchFilesFromApi();
       setFiles(data);
     } catch (error) {
-      // Le service gère déjà les erreurs de connexion et de parsing
       setStatus({ type: 'error', message: error.message || "Impossible de charger les fichiers." });
     }
   };
 
   const votreFonctionAppelBackend = async () => {
-    // Vérifier qu'un poste est sélectionné
     if (!selectedPoste) {
       setStatus({ type: 'error', message: 'Veuillez sélectionner un poste' });
       return;
     }
-
     setLoading(true);
-
     try {
-      // Appel avec le poste en paramètre GET
       const reponse = await fetch(`http://localhost:5000/api/poste_piece?poste=${encodeURIComponent(selectedPoste)}`);
-      
       if (reponse.ok) {
-        // On récupère le texte (HTML)
         const htmlRecu = await reponse.text();
-        
-        // On met à jour la variable qui est liée à votre DIV existant
         setContenuDiv(htmlRecu);
         setStatus({ type: 'success', message: 'Données chargées avec succès' });
       } else {
         const errorData = await reponse.json();
         setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
-
     } catch (err) {
       console.error("Le backend est injoignable", err);
       setStatus({ type: 'error', message: 'Le backend est injoignable' });
@@ -1027,20 +735,17 @@ export default function App() {
 
   const afficherExperienceParWeekStep = async () => {
     setLoading(true);
-
     try {
       const reponse = await fetch('http://localhost:5000/api/experience_week_step');
-      
       if (reponse.ok) {
         const htmlRecu = await reponse.text();
         setContenuDiv(htmlRecu);
         setStatus({ type: 'success', message: 'Expérience par semaine chargée' });
-        setSelectedFile(""); // Vider la sélection fichier
+        setSelectedFile("");
       } else {
         const errorData = await reponse.json();
         setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
-
     } catch (err) {
       console.error("Le backend est injoignable", err);
       setStatus({ type: 'error', message: 'Le backend est injoignable' });
@@ -1051,20 +756,17 @@ export default function App() {
 
   const afficherCostsParStep = async () => {
     setLoading(true);
-
     try {
       const reponse = await fetch('http://localhost:5000/api/costs_by_step');
-      
       if (reponse.ok) {
         const htmlRecu = await reponse.text();
         setContenuDiv(htmlRecu);
         setStatus({ type: 'success', message: 'Coûts par étape chargés' });
-        setSelectedFile(""); // Vider la sélection fichier
+        setSelectedFile("");
       } else {
         const errorData = await reponse.json();
         setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
-
     } catch (err) {
       console.error("Le backend est injoignable", err);
       setStatus({ type: 'error', message: 'Le backend est injoignable' });
@@ -1075,7 +777,6 @@ export default function App() {
 
   const afficherWorkflowSankey = async (step, maxNodes) => {
     setLoading(true);
-
     try {
       const url = new URL('http://localhost:5000/api/step_workflow');
       if (step) {
@@ -1084,7 +785,6 @@ export default function App() {
       url.searchParams.append('max_nodes', maxNodes);
       
       const reponse = await fetch(url.toString());
-      
       if (reponse.ok) {
         const htmlRecu = await reponse.text();
         setContenuDiv(htmlRecu);
@@ -1094,7 +794,6 @@ export default function App() {
         const errorData = await reponse.json();
         setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
-
     } catch (err) {
       console.error("Le backend est injoignable", err);
       setStatus({ type: 'error', message: 'Le backend est injoignable' });
@@ -1105,10 +804,8 @@ export default function App() {
 
   const afficherRetards10min = async () => {
     setLoading(true);
-
     try {
       const reponse = await fetch('http://localhost:5000/api/retards_10min');
-      
       if (reponse.ok) {
         const htmlRecu = await reponse.text();
         setContenuDiv(htmlRecu);
@@ -1118,7 +815,6 @@ export default function App() {
         const errorData = await reponse.json();
         setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
       }
-
     } catch (err) {
       console.error("Le backend est injoignable", err);
       setStatus({ type: 'error', message: 'Le backend est injoignable' });
@@ -1129,13 +825,9 @@ export default function App() {
 
   const handleXlsxFileClick = async (file) => {
     setLoading(true);
-
     try {
-      // Extraire le nom du fichier du chemin complet
       const filename = file.name || file.url.split('/').pop();
-      
       const reponse = await fetch(`http://localhost:5000/api/excel_table/${encodeURIComponent(filename)}`);
-      
       if (reponse.ok) {
         const htmlRecu = await reponse.text();
         setContenuDiv(htmlRecu);
@@ -1144,7 +836,6 @@ export default function App() {
         const errorData = await reponse.json();
         setStatus({ type: 'error', message: errorData.error || 'Erreur lors du chargement du fichier' });
       }
-
     } catch (err) {
       console.error("Erreur lors du chargement du fichier Excel", err);
       setStatus({ type: 'error', message: 'Erreur lors du chargement du fichier Excel' });
@@ -1153,42 +844,94 @@ export default function App() {
     }
   };
 
-  // Gérer l'upload en utilisant le service
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     setStatus({ type: 'loading', message: 'Envoi en cours...' });
-
     try {
-      // APPEL AU SERVICE API POUR L'UPLOAD
       await uploadFileToApi(file);
-      
       setStatus({ type: 'success', message: 'Fichier importé !' });
-      await loadFiles(); // Recharger la liste après succès
+      await loadFiles();
       setTimeout(() => setStatus({ type: '', message: '' }), 3000);
-
     } catch (error) {
-      // Le service API renvoie un objet Error avec le message formaté
       const errorMessage = error.message.includes('Failed to fetch') 
         ? "Erreur réseau : Le backend est-il lancé sur le port 5000 ?" 
         : error.message;
-
       setStatus({ type: 'error', message: errorMessage });
     }
-    
     event.target.value = null;
   };
 
   return (
     <div className="app-container">
-      {/* Injection des styles CSS */}
       <style>{cssStyles}</style>
-
-      {/* Widget Chatbot */}
       <Chatbot />
 
+      {/* Mode plein écran du contenu */}
+      {isFullscreen && contenuDiv && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#f8f9fa',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '20px'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px', gap: '10px' }}>
+            <button 
+              onClick={() => setIsFullscreen(false)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#e74c3c',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                fontWeight: 500
+              }}
+              title="Quitter le plein écran"
+            >
+              <Minimize2 size={16} />
+              Quitter
+            </button>
+          </div>
+          <div 
+            style={{
+              flex: 1,
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              overflow: 'hidden', // Correction: iframe gère le scroll
+              padding: '0px'
+            }}
+          >
+            {/* Iframe Plein Ecran */}
+            <iframe
+              title="Résultat Plein Ecran"
+              srcDoc={contenuDiv}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                backgroundColor: '#fff'
+              }}
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
+          </div>
+        </div>
+      )}
+
       {/* --- SIDEBAR --- */}
+      {!isFullscreen && (
       <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <span className="sidebar-title">Mes Documents</span>
@@ -1209,7 +952,6 @@ export default function App() {
                   onClick={() => {
                     setSelectedFile(file);
                     setContenuDiv("");
-                    // Si c'est un fichier .xlsx, charger et afficher le tableau
                     if (file.name.endsWith('.xlsx')) {
                       handleXlsxFileClick(file);
                     }
@@ -1241,9 +983,7 @@ export default function App() {
                     gap: '4px',
                     textDecoration: 'none',
                     fontSize: '12px',
-                    fontWeight: 500,
-                    transition: 'all 0.2s',
-                    hover: { backgroundColor: '#364ec5' }
+                    fontWeight: 500
                   }}
                   title="Télécharger le fichier"
                 >
@@ -1254,14 +994,14 @@ export default function App() {
           )}
         </div>
       </div>
+      )}
 
       {/* --- CONTENU PRINCIPAL --- */}
+      {!isFullscreen && (
       <div className="main-content">
         
         {/* HEADER */}
         <header className="top-header">
-          
-          {/* PARTIE GAUCHE (Menu + Titre + Bouton Python) */}
           <div className="header-left">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1273,14 +1013,12 @@ export default function App() {
               {selectedFile ? selectedFile.name : 'Tableau de bord'}
             </h1>
             
-            {/* Boutons principaux */}
             <div className="buttons-container">
               <button 
                 onClick={afficherExperienceParWeekStep}
                 className="primary-btn"
                 disabled={loading}
                 style={{ backgroundColor: '#27ae60' }}
-                title="Affiche l'expérience par semaine et étape"
               >
                 {loading ? "Chargement..." : "Expérience Week/Step"}
               </button>
@@ -1289,7 +1027,6 @@ export default function App() {
                 className="primary-btn"
                 disabled={loading}
                 style={{ backgroundColor: '#e67e22' }}
-                title="Affiche les coûts par étape"
               >
                 {loading ? "Chargement..." : "Coûts par étape"}
               </button>
@@ -1298,35 +1035,29 @@ export default function App() {
                 className="primary-btn"
                 disabled={loading}
                 style={{ backgroundColor: '#8e44ad' }}
-                title="Affiche le workflow Sankey"
               >
                 {loading ? "Chargement..." : "Workflow Sankey"}
               </button>
             </div>
 
-            {/* Bouton Retards indépendant */}
             <button 
               onClick={afficherRetards10min}
               className="primary-btn"
               disabled={loading}
               style={{ backgroundColor: '#e74c3c' }}
-              title="Affiche les retards > 10 minutes"
             >
               {loading ? "Chargement..." : "⚠️ Retards > 10 min"}
             </button>
 
-            {/* Bouton pour ouvrir la sidebar */}
             <button 
               onClick={() => setIsQuickAccessOpen(!isQuickAccessOpen)}
               className="primary-btn"
               style={{ backgroundColor: '#6c757d' }}
-              title="Ouvrir l'accès rapide"
             >
               {isQuickAccessOpen ? "✕ Fermer" : "☰ Accès rapide"}
             </button>
           </div>
 
-          {/* PARTIE DROITE (Status + Upload) */}
           <div className="header-right">
             {status.message && (
               <div className={`status-badge ${status.type}`}>
@@ -1350,17 +1081,13 @@ export default function App() {
               <span>Importer</span>
             </button>
           </div>
-          
         </header>
 
-        {/* ZONE DE PRÉVISUALISATION (Logique Corrigée) */}
+        {/* ZONE DE PRÉVISUALISATION */}
         <main className="preview-area">
-          
-          {/* CONDITION PRINCIPALE : Afficher la carte si un fichier OU du contenu Python est là */}
           {(selectedFile || contenuDiv) ? (
             <div className="preview-card">
               
-              {/* BANNIÈRE RÉSULTAT DE L'ACTION (EN HAUT DU CONTENEUR) */}
               {contenuDiv && (
                 <div 
                   style={{ 
@@ -1376,53 +1103,68 @@ export default function App() {
                   <h3 style={{ margin: 0, color: '#1971c2', fontSize: '1.1rem', fontWeight: 700 }}>
                     📊 Résultat de l'action
                   </h3>
-                  <button 
-                    onClick={() => setContenuDiv("")} 
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666', padding: '4px 8px', hover: { color: '#000' } }}
-                  >
-                    ✖
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button 
+                      onClick={() => setIsFullscreen(true)} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#4c6ef5', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s' }}
+                      title="Afficher en plein écran"
+                    >
+                      <Maximize2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setContenuDiv("")} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666', padding: '4px 8px' }}
+                    >
+                      ✖
+                    </button>
+                  </div>
                 </div>
               )}
               
-              {/* EN-TÊTE de la Carte */}
               <div className="preview-card-header">
                   {selectedFile ? (
                     <>
                         <span>ID: {selectedFile.id}</span>
                         <span className="file-type-badge">{selectedFile.type}</span>
                     </>
-                  ) : contenuDiv ? (
-                    // Si on a du contenu Python mais pas de fichier, ne rien afficher ici
-                    null
-                  ) : (
-                    // Cas par défaut
+                  ) : contenuDiv ? null : (
                     <span>Aperçu</span>
                   )}
               </div>
               
-              {/* CORPS : Utilise flex-column pour empiler les éléments */}
               <div className="preview-card-body" style={{ flexDirection: 'column', display: 'flex' }}>
                 
-                {/* --- 1. LE CONTENU HTML DU RÉSULTAT PYTHON --- */}
+                {/* --- 1. LE CONTENU HTML DU RÉSULTAT PYTHON (CORRIGÉ AVEC IFRAME) --- */}
                 {contenuDiv && (
-                    <div 
-                      style={{ 
-                        width: '100%', 
-                        flex: 1,
-                        backgroundColor: '#fff',
-                        borderBottom: selectedFile ? '1px solid #eee' : 'none',
-                        padding: '30px 20px 20px 20px',
-                        overflowY: 'auto',
-                        marginTop: '12px'
+                  <div 
+                    style={{ 
+                      width: '100%', 
+                      flex: 1, // Force le conteneur à prendre l'espace restant
+                      backgroundColor: '#fff',
+                      borderBottom: selectedFile ? '1px solid #eee' : 'none',
+                      padding: '0', // Pas de padding pour ne pas écraser l'iframe
+                      marginTop: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      minHeight: '500px' // Hauteur minimum de sécurité
+                    }}
+                  >
+                    <iframe
+                      title="Visualisation"
+                      srcDoc={contenuDiv}
+                      style={{
+                        width: '100%',
+                        flex: 1, // L'iframe prend 100% de la hauteur du parent
+                        minHeight: '500px', // Hauteur minimum si le flex échoue
+                        border: 'none',
+                        display: 'block'
                       }}
-                    >
-                        {/* Injection du HTML */}
-                        <div dangerouslySetInnerHTML={{ __html: contenuDiv }} />
-                    </div>
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
+                  </div>
                 )}
 
-                {/* --- 2. L'APERÇU DU FICHIER (S'affiche seulement s'il n'y a pas de contenu HTML) --- */}
+                {/* --- 2. L'APERÇU DU FICHIER --- */}
                 {selectedFile && !contenuDiv && (
                     <div style={{ flex: 1, padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                         {selectedFile.type.includes('image') ? (
@@ -1454,7 +1196,6 @@ export default function App() {
               </div>
             </div>
           ) : (
-            // --- CAS VIDE : Si selectedFile est null ET contenuDiv est vide ---
             <div className="empty-placeholder">
               <div className="empty-icon-circle">
                 <Upload size={40} />
@@ -1470,7 +1211,6 @@ export default function App() {
           <div className="modal-overlay" onClick={() => setShowWorkflowModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">Configuration du Workflow Sankey</div>
-              
               <div className="modal-body">
                 <div className="form-group">
                   <label>Étape (optionnel - laisser vide pour toutes les étapes)</label>
@@ -1484,7 +1224,6 @@ export default function App() {
                     ))}
                   </select>
                 </div>
-
                 <div className="form-group">
                   <label>Nombre maximum de nœuds par niveau</label>
                   <input 
@@ -1496,7 +1235,6 @@ export default function App() {
                   />
                 </div>
               </div>
-
               <div className="modal-actions">
                 <button 
                   className="modal-btn modal-btn-secondary"
@@ -1519,8 +1257,10 @@ export default function App() {
           </div>
         )}
       </div>
+      )}
 
-      {/* --- SIDEBAR DROITE - ACCÈS RAPIDE --- */}
+      {/* --- SIDEBAR DROITE --- */}
+      {!isFullscreen && (
       <div className={`sidebar-right ${isQuickAccessOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-right-header">
           <h2 className="sidebar-right-title">Accès rapide</h2>
@@ -1534,7 +1274,6 @@ export default function App() {
         </div>
 
         <div className="sidebar-right-content">
-          {/* Sélection du poste */}
           <div className="poste-selection-group-sidebar">
             <label htmlFor="poste-select-sidebar">Sélectionner un poste :</label>
             <select 
@@ -1562,6 +1301,7 @@ export default function App() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
