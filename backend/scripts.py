@@ -7,6 +7,45 @@ import plotly.graph_objects as go
 from urllib.parse import unquote
 
 # ======================================================
+# STYLE CONSTANT FOR UNIFIED TABLE STYLING
+# ======================================================
+TABLE_STYLE = 'border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; font-family: Arial; width: 100%;"'
+TABLE_HEADER_STYLE = 'style="background-color:#f0f0f0;font-weight:bold;text-align:center;"'
+
+# Helper function to style pandas to_html output
+def style_pandas_table(html_str: str) -> str:
+    """
+    Stylise le HTML généré par pandas.to_html() pour qu'il soit cohérent avec les autres tableaux.
+    """
+    # Ajouter du CSS pour styliser la table
+    styled_html = f"""
+    <style>
+        table {{
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            width: 100%;
+            border: 1px solid #ddd;
+        }}
+        th {{
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            border: 1px solid #ddd;
+        }}
+        td {{
+            padding: 8px;
+            border: 1px solid #ddd;
+        }}
+        tr:nth-child(even) {{
+            background-color: #f9f9f9;
+        }}
+    </style>
+    {html_str}
+    """
+    return styled_html
+
+# ======================================================
 # 1. FONCTION DE FUSION : MES + PLM + ERP
 # ======================================================
 
@@ -153,6 +192,7 @@ def html_poste_pieces(production_chains: pd.DataFrame, poste: int) -> str:
         justify="center",
         classes="table table-striped",
     )
+    table_html = style_pandas_table(table_html)
  
     # Graphique Plotly
     fig = px.bar(
@@ -227,8 +267,8 @@ def html_etape_postes_employes(production_chains: pd.DataFrame, etape: str | Non
     # ---------- Construction du tableau HTML avec rowspan ----------
     html = """
 <h2>Organisation par Étape → Poste → Employé</h2>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-<tr style="background-color:#f2f2f2;font-weight:bold;text-align:center;">
+<table """ + TABLE_STYLE + """>
+<tr """ + TABLE_HEADER_STYLE + """>
 <td>Étape</td>
 <td>Poste</td>
 <td>Employé</td>
@@ -365,9 +405,9 @@ def html_retards_10min(production_chains: pd.DataFrame) -> str:
  
     # Construction HTML
     html = """
-<h2 style="color:red;">Retards supérieurs à 10 minutes - Groupés par Poste et Opération</h2>
+<h2 style="color:black;">Retards supérieurs à 10 minutes - Groupés par Poste et Opération</h2>
 <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; font-family: Arial; width: 100%;">
-<tr style="background-color:#ffe5e5;font-weight:bold;text-align:center;color:#cc0000;">
+<tr style="background-color:#f0f0f0;font-weight:bold;text-align:center;color:black;">
 <td>Poste</td>
 <td>Opération</td>
 <td>Nb retards</td>
@@ -379,7 +419,7 @@ def html_retards_10min(production_chains: pd.DataFrame) -> str:
  
     for _, row in retards_grouped.iterrows():
         html += f"""
-<tr style="color:red;">
+<tr style="color:black;">
 <td><b>{row['Poste']}</b></td>
 <td>{row['Nom']}</td>
 <td style="text-align:center;font-weight:bold;">{int(row['Nb_retards'])}</td>
@@ -711,8 +751,8 @@ def html_step_details(mes: pd.DataFrame,
     </div>
 
         <h3>Personnes impliquées</h3>
-    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px;">
-    <tr style="background:#f2f2f2;font-weight:bold;text-align:center;">
+    <table """ + TABLE_STYLE + """>
+    <tr """ + TABLE_HEADER_STYLE + """>
     <td>Nom</td>
     <td>Niveau</td>
     <td>Heures prévues</td>
@@ -1030,6 +1070,7 @@ def html_costs_by_step(mes: pd.DataFrame,
         border=1,
         justify="center"
     )
+    table_html = style_pandas_table(table_html)
  
     # ======================================================
     # 7) CAMEMBERT REPARTITION DU COUT TOTAL
@@ -1165,8 +1206,8 @@ def html_experience_by_week_step(production_chains: pd.DataFrame) -> str:
  
     html = """
 <h3>Nombre de personnes par Semaine, Étape de production et niveau d'expérience</h3>
-<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-<tr style="background-color:#f2f2f2;font-weight:bold;text-align:center;">
+<table """ + TABLE_STYLE + """>
+<tr """ + TABLE_HEADER_STYLE + """>
 <td>Semaine</td>
 <td>Étape de production</td>
 <td>Expert</td>
@@ -1520,6 +1561,7 @@ def html_costs_by_step(mes: pd.DataFrame,
         justify="center",
         classes="table table-striped" # Ajout classe CSS standard si dispo
     )
+    table_html = style_pandas_table(table_html)
 
     # ======================================================
     # 7) CAMEMBERT REPARTITION DU COUT TOTAL
