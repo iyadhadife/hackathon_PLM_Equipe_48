@@ -344,8 +344,8 @@ def html_etape_postes_employes(production_chains: pd.DataFrame, etape: str | Non
  
 def html_retards_10min(production_chains: pd.DataFrame) -> str:
     """
-    Retourne un tableau HTML avec tous les retards > 10 minutes
-    groupés par Poste, Nom et Référence.
+    Retourne un tableau HTML avec tous les retards > 10 minutes par Poste.
+    Affiche l'écart de retard, l'aléa industriel et la cause potentielle, triés par écart décroissant.
     Retourne : string HTML
     """
  
@@ -383,84 +383,80 @@ def html_retards_10min(production_chains: pd.DataFrame) -> str:
     if retards.empty:
         return "<p>Aucun retard supérieur à 10 minutes.</p>"
  
-    # Groupby par Poste et Nom avec agrégations
-    groupe_cols = ["Poste", "Nom"]
-    
+    # Grouper par Poste uniquement avec l'écart moyen et récupérer les aléas/causes
     retards_grouped = (
         retards
-        .groupby(groupe_cols, as_index=False)
+        .groupby("Poste", as_index=False)
         .agg({
-            "Ecart_min": ["count", "mean", "max", "min"],  # Nombre de retards, moyenne, max, min
-            "Temps Prévu": "first",  # Afficher un exemple
-            "Temps Réel": "first"
+            "Ecart_min": "mean",  # Écart moyen en minutes
+            "Aléas Industriels": "first",  # Prendre le premier aléa
+            "Cause Potentielle": "first"  # Prendre la première cause
         })
-        .reset_index(drop=True)
     )
     
-    # Aplatir les colonnes multi-niveaux
-    retards_grouped.columns = ['Poste', 'Nom', 'Nb_retards', 'Ecart_moyen', 'Ecart_max', 'Ecart_min', 'Temps_Prevu_ex', 'Temps_Reel_ex']
+    # Renommer pour clarté
+    retards_grouped.columns = ['Poste', 'Ecart_moyen_min', 'Aléas Industriels', 'Cause Potentielle']
+    
+    # Remplacer les NaN par "Non renseigné"
+    retards_grouped['Aléas Industriels'] = retards_grouped['Aléas Industriels'].fillna("Non renseigné")
+    retards_grouped['Cause Potentielle'] = retards_grouped['Cause Potentielle'].fillna("Non renseignée")
  
-    # Tri par Poste puis par écart moyen décroissant
-    retards_grouped = retards_grouped.sort_values(['Poste', 'Ecart_moyen'], ascending=[True, False])
+    # Tri par écart décroissant
+    retards_grouped = retards_grouped.sort_values('Ecart_moyen_min', ascending=False)
  
     # Construction HTML
     html = """
-<h2 style="color:black;">Retards supérieurs à 10 minutes - Groupés par Poste et Opération</h2>
+<h2 style="color:black;">Retards supérieurs à 10 minutes par Poste</h2>
 <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; font-family: Arial; width: 100%;">
 <tr style="background-color:#f0f0f0;font-weight:bold;text-align:center;color:black;">
 <td>Poste</td>
-<td>Opération</td>
-<td>Nb retards</td>
 <td>Écart moyen (min)</td>
-<td>Écart max (min)</td>
-<td>Écart min (min)</td>
+<td>Aléa industriel</td>
+<td>Cause potentielle</td>
 </tr>
     """
  
     for _, row in retards_grouped.iterrows():
         html += f"""
 <tr style="color:black;">
-<td><b>{row['Poste']}</b></td>
-<td>{row['Nom']}</td>
-<td style="text-align:center;font-weight:bold;">{int(row['Nb_retards'])}</td>
-<td style="text-align:center;"><b>{row['Ecart_moyen']:.1f}</b></td>
-<td style="text-align:center;">{row['Ecart_max']:.1f}</td>
-<td style="text-align:center;">{row['Ecart_min']:.1f}</td>
+<td style="text-align:center;"><b>{row['Poste']}</b></td>
+<td style="text-align:center;font-weight:bold;color:#d32f2f;">{row['Ecart_moyen_min']:.1f}</td>
+<td>{row['Aléas Industriels']}</td>
+<td>{row['Cause Potentielle']}</td>
 </tr>
         """
  
     html += "</table>"
     
-    # Créer un diagramme en bâtons pour les retards par poste
-    retards_by_poste = retards_grouped.groupby("Poste")["Nb_retards"].sum().reset_index()
-    retards_by_poste = retards_by_poste.sort_values("Nb_retards", ascending=True)
+    # Créer un diagramme en barres horizontales pour les écarts par poste
+    retards_sorted = retards_grouped.sort_values("Ecart_moyen_min", ascending=True)
     
     fig_retards = px.bar(
-        retards_by_poste,
-        x="Nb_retards",
+        retards_sorted,
+        x="Ecart_moyen_min",
         y="Poste",
         labels={
             "Poste": "Poste",
-            "Nb_retards": "Nombre de retards (>10 min)"
+            "Ecart_moyen_min": "Écart moyen (min)"
         },
-        title="Nombre de retards par poste",
-        color="Nb_retards",
+        title="Écart moyen de retard par poste (>10 min)",
+        color="Ecart_moyen_min",
         color_continuous_scale="Reds",
         orientation="h"
     )
     fig_retards.update_layout(
-        height=max(400, len(retards_by_poste) * 50),
+        height=max(400, len(retards_sorted) * 50),
         margin=dict(l=80, r=50, t=100, b=80),
         yaxis=dict(type="category")
     )
-    fig_retards.update_xaxes(title_text="Nombre de retards (>10 min)")
+    fig_retards.update_xaxes(title_text="Écart moyen (minutes)")
     fig_retards.update_yaxes(title_text="Poste")
     graph_html = fig_retards.to_html(full_html=False, include_plotlyjs="cdn")
     
     html += graph_html
     html += f"""
 <p style="margin-top:20px;font-size:0.9rem;color:#666;">
-<b>Résumé :</b> {len(retards_grouped)} groupes de retards détectés | Total d'occurrences : {len(retards)} retards
+<b>Résumé :</b> {len(retards_grouped)} postes avec retards détectés | Total d'occurrences : {len(retards)} retards
 </p>
     """
  
