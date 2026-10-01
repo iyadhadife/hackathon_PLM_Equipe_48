@@ -393,3 +393,6 @@ docs/.doctrees/
 *_BASE_*.txt
 *_LOCAL_*.txt
 *_REMOTE_*.txt
+
+# rapports générés hors-ligne
+backend/analyses_html/

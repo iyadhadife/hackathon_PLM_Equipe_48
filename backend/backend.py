@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from scripts import *
+from analytics import render_analyse, ANALYSES
 import pandas as pd
 import google.generativeai as genai
 import dotenv
@@ -619,6 +620,18 @@ def excel_table(filename):
 #                                  'uploads/PLM_DataSet.xlsx', 
 #                                  'uploads/ERP_Equipes_Airplus.xlsx')
 #     return html_poste_pieces(df)
+
+# --- ROUTE 11 : Analyses croisées MES × PLM × ERP ---
+# /api/analyse/synthese | matrice | pareto | experience | supply | chronologie
+@app.route('/api/analyse/<name>', methods=['GET'])
+def analyse_croisee(name):
+    if name not in ANALYSES:
+        return jsonify({'error': f"Analyse inconnue. Disponibles : {', '.join(ANALYSES)}"}), 404
+    try:
+        html = render_analyse(name, app.config['UPLOAD_FOLDER'])
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({'error': f"Erreur lors de l'analyse : {str(e)}"}), 500
 
 if __name__ == '__main__':
     # Lance le serveur sur le port 5000, qui est la cible de l'API

@@ -122,3 +122,9 @@ Vérifiez que votre clé API Gemini est correcte dans le fichier `.env` ou `back
 
 ### Erreur CORS
 Si vous voyez des erreurs CORS dans la console, vérifiez que `flask-cors` est bien installé et activé dans `backend.py`
+
+## Analyses croisées MES × PLM × ERP
+
+Le bouton **🔗 Analyses croisées** du tableau de bord ouvre 6 analyses qui relient les 3 fichiers : synthèse 360°, matrice risque × valeur, Pareto des aléas, expérience vs performance, risque approvisionnement et chronologie Gantt.
+
+La méthode, les clés de jointure et les premiers enseignements sont décrits dans [ANALYSES.md](ANALYSES.md).

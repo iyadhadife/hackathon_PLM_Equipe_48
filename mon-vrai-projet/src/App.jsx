@@ -492,6 +492,55 @@ body {
   background-color: #dee2e6;
 }
 
+/* Modal Analyses croisées */
+.modal-content.analyse-modal {
+  max-width: 760px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.analyse-intro {
+  margin: -6px 0 16px;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.analyse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.analyse-card {
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: inherit;
+  color: #333;
+}
+.analyse-card:hover:not(:disabled) {
+  border-color: #4c6ef5;
+  box-shadow: 0 4px 14px rgba(76, 110, 245, 0.15);
+  transform: translateY(-1px);
+}
+.analyse-card:disabled { opacity: 0.6; cursor: wait; }
+.analyse-card-title { font-weight: 600; font-size: 0.95rem; }
+.analyse-card-desc { font-size: 0.8rem; color: #666; line-height: 1.4; }
+.analyse-tags { display: flex; gap: 4px; margin-top: auto; }
+.analyse-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #edf2ff;
+  color: #3b5bdb;
+}
+
 /* Quick Access Section */
 .quick-access-toggle {
   width: 100%;
@@ -669,6 +718,17 @@ export default function App() {
   const [isQuickAccessOpen, setIsQuickAccessOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Analyses croisées MES × PLM × ERP (backend/analytics.py)
+  const analysesCroisees = [
+    { id: 'synthese', titre: '📈 Synthèse 360°', desc: 'KPI clés, courbe en S prévu vs réel, retard par étape et opérations à plus forte exposition financière.', sources: ['MES', 'PLM', 'ERP'] },
+    { id: 'matrice', titre: '🎯 Matrice risque × valeur', desc: 'Quels postes traiter en premier : dépassement vs valeur et criticité des pièces engagées.', sources: ['MES', 'PLM', 'ERP'] },
+    { id: 'pareto', titre: '⚠️ Pareto des aléas', desc: 'Les familles d\'incidents qui font 80 % du retard, leur localisation et leurs causes racines.', sources: ['MES', 'PLM', 'ERP'] },
+    { id: 'experience', titre: '👷 Expérience vs performance', desc: 'Le niveau d\'expérience des équipes influence-t-il les dépassements ? Coût horaire par niveau.', sources: ['MES', 'ERP'] },
+    { id: 'supply', titre: '🚚 Risque approvisionnement', desc: 'Pièces critiques à long délai, dépendance fournisseurs et top 10 des pièces à sécuriser.', sources: ['PLM', 'MES'] },
+    { id: 'chronologie', titre: '🗓️ Chronologie (Gantt)', desc: 'Toutes les opérations prévu vs réel dans le temps, colorées par criticité des pièces.', sources: ['MES', 'PLM', 'ERP'] },
+  ];
+  const [showAnalyseModal, setShowAnalyseModal] = useState(false);
+
   // Liste des postes disponibles
   const postes = [
     "Montage train atterissage",
@@ -810,6 +870,28 @@ export default function App() {
         const htmlRecu = await reponse.text();
         setContenuDiv(htmlRecu);
         setStatus({ type: 'success', message: 'Retards > 10 min chargés' });
+        setSelectedFile("");
+      } else {
+        const errorData = await reponse.json();
+        setStatus({ type: 'error', message: errorData.error || 'Erreur serveur' });
+      }
+    } catch (err) {
+      console.error("Le backend est injoignable", err);
+      setStatus({ type: 'error', message: 'Le backend est injoignable' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const afficherAnalyseCroisee = async (analyse) => {
+    setLoading(true);
+    setShowAnalyseModal(false);
+    try {
+      const reponse = await fetch(`http://localhost:5000/api/analyse/${analyse.id}`);
+      if (reponse.ok) {
+        const htmlRecu = await reponse.text();
+        setContenuDiv(htmlRecu);
+        setStatus({ type: 'success', message: `${analyse.titre} chargée` });
         setSelectedFile("");
       } else {
         const errorData = await reponse.json();
@@ -1038,6 +1120,14 @@ export default function App() {
               >
                 {loading ? "Chargement..." : "Workflow Sankey"}
               </button>
+              <button 
+                onClick={() => setShowAnalyseModal(true)}
+                className="primary-btn"
+                disabled={loading}
+                style={{ backgroundColor: '#1971c2' }}
+              >
+                {loading ? "Chargement..." : "🔗 Analyses croisées"}
+              </button>
             </div>
 
             <button 
@@ -1205,6 +1295,44 @@ export default function App() {
             </div>
           )}
         </main>
+
+        {/* Modal Analyses croisées */}
+        {showAnalyseModal && (
+          <div className="modal-overlay" onClick={() => setShowAnalyseModal(false)}>
+            <div className="modal-content analyse-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">Analyses croisées MES × PLM × ERP</div>
+              <p className="analyse-intro">
+                Chaque analyse relie les 3 fichiers : opérations réelles (MES), pièces (PLM) et équipes (ERP).
+              </p>
+              <div className="analyse-grid">
+                {analysesCroisees.map((a) => (
+                  <button
+                    key={a.id}
+                    className="analyse-card"
+                    onClick={() => afficherAnalyseCroisee(a)}
+                    disabled={loading}
+                  >
+                    <span className="analyse-card-title">{a.titre}</span>
+                    <span className="analyse-card-desc">{a.desc}</span>
+                    <span className="analyse-tags">
+                      {a.sources.map((src) => (
+                        <span key={src} className="analyse-tag">{src}</span>
+                      ))}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="modal-actions" style={{ marginTop: '20px' }}>
+                <button
+                  className="modal-btn modal-btn-secondary"
+                  onClick={() => setShowAnalyseModal(false)}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal Workflow */}
         {showWorkflowModal && (
